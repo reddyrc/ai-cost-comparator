@@ -4,10 +4,11 @@
 let currentTokenMultiplier = 1;
 
 document.addEventListener('DOMContentLoaded', () => {
-    initPricingTable();
-    initSortableTable();
+    // Initialize column config first (loads saved preferences)
+    initColumnConfig();
+    // initColumnConfig calls applyColumnConfig which renders the table,
+    // initializes checkboxes, and sets up sortable headers
     initTokenSizeToggle();
-    initModelCheckboxes();
     initCalculator();
     initComparison();
     initNavigation();
@@ -129,52 +130,9 @@ function initTokenSizeToggle() {
 // ===== Pricing Table =====
 
 function initPricingTable() {
-    const tbody = document.getElementById('pricing-body');
-    tbody.innerHTML = '';
-
-    const multiplier = currentTokenMultiplier;
-
-    // Find cheapest input and output prices for highlighting (using base prices)
-    const cheapestInput = Math.min(...pricingData.map(m => m.inputPrice));
-    const cheapestOutput = Math.min(...pricingData.map(m => m.outputPrice));
-
-    pricingData.forEach(model => {
-        const tr = document.createElement('tr');
-        
-        const scaledInput = model.inputPrice * multiplier;
-        const scaledOutput = model.outputPrice * multiplier;
-        
-        const isCheapestInput = model.inputPrice === cheapestInput;
-        const isCheapestOutput = model.outputPrice === cheapestOutput;
-
-        tr.innerHTML = `
-            <td>
-                <span class="provider-badge provider-${model.providerClass}">${model.provider}</span>
-            </td>
-            <td>
-                <a href="#" class="model-link" data-model="${model.model}">
-                    <span class="model-name">${model.model}</span>
-                    <span class="model-link-icon">📊</span>
-                </a>
-                <br><small style="color: var(--text-muted); font-size: 0.8rem;">${model.description}</small>
-            </td>
-            <td>
-                <span class="price-cell ${isCheapestInput ? 'price-cheapest' : ''}">
-                    ${formatCurrencyShort(scaledInput)}
-                    ${isCheapestInput ? ' 🏆' : ''}
-                </span>
-            </td>
-            <td>
-                <span class="price-cell ${isCheapestOutput ? 'price-cheapest' : ''}">
-                    ${formatCurrencyShort(scaledOutput)}
-                    ${isCheapestOutput ? ' 🏆' : ''}
-                </span>
-            </td>
-            <td><span class="context-cell">${model.contextWindow}</span></td>
-        `;
-
-        tbody.appendChild(tr);
-    });
+    // Use column config to render the table
+    const config = getColumnConfig();
+    applyColumnConfig(config);
 }
 
 // ===== Sortable Table =====
@@ -208,32 +166,50 @@ function sortTable(column, direction) {
     const tbody = document.getElementById('pricing-body');
     const rows = Array.from(tbody.querySelectorAll('tr'));
     
+    // Find the column index by looking at header data-sort attributes
+    const headers = document.querySelectorAll('#pricing-table thead th.sortable');
+    let colIndex = -1;
+    headers.forEach((th, idx) => {
+        if (th.dataset.sort === column) {
+            colIndex = idx;
+        }
+    });
+    
+    if (colIndex === -1) return;
+    
     rows.sort((a, b) => {
         let valA, valB;
         
-        switch (column) {
-            case 'provider':
-                valA = a.cells[0].textContent.trim().toLowerCase();
-                valB = b.cells[0].textContent.trim().toLowerCase();
-                break;
-            case 'model':
-                valA = a.cells[1].textContent.trim().toLowerCase();
-                valB = b.cells[1].textContent.trim().toLowerCase();
-                break;
-            case 'input':
-                valA = parsePrice(a.cells[2].textContent);
-                valB = parsePrice(b.cells[2].textContent);
-                break;
-            case 'output':
-                valA = parsePrice(a.cells[3].textContent);
-                valB = parsePrice(b.cells[3].textContent);
-                break;
-            case 'context':
-                valA = parseContext(a.cells[4].textContent);
-                valB = parseContext(b.cells[4].textContent);
-                break;
-            default:
-                return 0;
+        // Check if it's a benchmark column (starts with 'benchmark-')
+        if (column.startsWith('benchmark-')) {
+            // Benchmark columns contain percentage text like "88.5% 👑"
+            valA = parseFloat(a.cells[colIndex]?.textContent?.replace(/[^0-9.]/g, '') || '0');
+            valB = parseFloat(b.cells[colIndex]?.textContent?.replace(/[^0-9.]/g, '') || '0');
+        } else {
+            switch (column) {
+                case 'provider':
+                    valA = a.cells[colIndex]?.textContent?.trim().toLowerCase() || '';
+                    valB = b.cells[colIndex]?.textContent?.trim().toLowerCase() || '';
+                    break;
+                case 'model':
+                    valA = a.cells[colIndex]?.textContent?.trim().toLowerCase() || '';
+                    valB = b.cells[colIndex]?.textContent?.trim().toLowerCase() || '';
+                    break;
+                case 'input':
+                    valA = parsePrice(a.cells[colIndex]?.textContent || '');
+                    valB = parsePrice(b.cells[colIndex]?.textContent || '');
+                    break;
+                case 'output':
+                    valA = parsePrice(a.cells[colIndex]?.textContent || '');
+                    valB = parsePrice(b.cells[colIndex]?.textContent || '');
+                    break;
+                case 'context':
+                    valA = parseContext(a.cells[colIndex]?.textContent || '');
+                    valB = parseContext(b.cells[colIndex]?.textContent || '');
+                    break;
+                default:
+                    return 0;
+            }
         }
         
         if (typeof valA === 'string') {
@@ -569,6 +545,245 @@ function openModelModal(model) {
     document.body.style.overflow = 'hidden';
 }
 
+// ===== Column Configuration =====
+
+// Default column definitions
+const COLUMN_DEFS = [
+    { id: 'provider', label: 'Provider', desc: 'Model provider name', alwaysOn: true, default: true },
+    { id: 'model', label: 'Model', desc: 'Model name and description', alwaysOn: true, default: true },
+    { id: 'input', label: 'Input Price', desc: 'Cost per token for input/prompt', alwaysOn: false, default: true },
+    { id: 'output', label: 'Output Price', desc: 'Cost per token for output/completion', alwaysOn: false, default: true },
+    { id: 'context', label: 'Context Window', desc: 'Maximum context length', alwaysOn: false, default: true },
+    { id: 'benchmark-mmlu', label: 'MMLU', desc: 'Knowledge benchmark score', alwaysOn: false, default: false, benchmark: 'mmlu' },
+    { id: 'benchmark-humaneval', label: 'HumanEval', desc: 'Code generation score', alwaysOn: false, default: false, benchmark: 'humaneval' },
+    { id: 'benchmark-math', label: 'MATH', desc: 'Math reasoning score', alwaysOn: false, default: false, benchmark: 'math' },
+    { id: 'benchmark-gpqa', label: 'GPQA', desc: 'Graduate-level Q&A score', alwaysOn: false, default: false, benchmark: 'gpqa' },
+    { id: 'benchmark-ifeval', label: 'IFEval', desc: 'Instruction following score', alwaysOn: false, default: false, benchmark: 'ifeval' },
+];
+
+// Load saved column config from localStorage, or use defaults
+function getColumnConfig() {
+    try {
+        const saved = localStorage.getItem('ai-cost-columns');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {}
+    // Return default config
+    const config = {};
+    COLUMN_DEFS.forEach(col => {
+        config[col.id] = col.default;
+    });
+    return config;
+}
+
+function saveColumnConfig(config) {
+    try {
+        localStorage.setItem('ai-cost-columns', JSON.stringify(config));
+    } catch (e) {}
+}
+
+function initColumnConfig() {
+    const modal = document.getElementById('columns-modal');
+    const closeBtn = document.getElementById('columns-modal-close');
+    const openBtn = document.getElementById('columns-btn');
+    const togglesContainer = document.getElementById('column-toggles');
+    const applyBtn = document.getElementById('columns-apply');
+    const resetBtn = document.getElementById('columns-reset');
+    
+    // Open modal
+    openBtn.addEventListener('click', () => {
+        renderColumnToggles(togglesContainer);
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    });
+    
+    // Close modal
+    closeBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    });
+    
+    // Apply changes
+    applyBtn.addEventListener('click', () => {
+        const checkboxes = togglesContainer.querySelectorAll('input[type="checkbox"]');
+        const config = {};
+        checkboxes.forEach(cb => {
+            config[cb.value] = cb.checked;
+        });
+        saveColumnConfig(config);
+        applyColumnConfig(config);
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    });
+    
+    // Reset to defaults
+    resetBtn.addEventListener('click', () => {
+        const config = {};
+        COLUMN_DEFS.forEach(col => {
+            config[col.id] = col.default;
+        });
+        renderColumnToggles(togglesContainer, config);
+    });
+    
+    // Apply initial config
+    const config = getColumnConfig();
+    applyColumnConfig(config);
+}
+
+function renderColumnToggles(container, configOverride) {
+    const config = configOverride || getColumnConfig();
+    container.innerHTML = '';
+    
+    COLUMN_DEFS.forEach(col => {
+        const isChecked = config[col.id] !== undefined ? config[col.id] : col.default;
+        const isDisabled = col.alwaysOn;
+        
+        const item = document.createElement('label');
+        item.className = `column-toggle-item${isDisabled ? ' disabled' : ''}`;
+        item.innerHTML = `
+            <input type="checkbox" value="${col.id}" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
+            <div>
+                <div class="column-toggle-label">${col.label}</div>
+                <div class="column-toggle-desc">${col.desc}</div>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function applyColumnConfig(config) {
+    const thead = document.querySelector('#pricing-table thead tr');
+    const tbody = document.getElementById('pricing-body');
+    
+    // Build the header row based on config
+    let headerHTML = '<th class="th-checkbox"><input type="checkbox" id="select-all-models" title="Select all models"></th>';
+    
+    COLUMN_DEFS.forEach(col => {
+        const show = config[col.id] !== undefined ? config[col.id] : col.default;
+        if (!show) return;
+        headerHTML += `<th data-sort="${col.id}" class="sortable">${col.label} <span class="sort-icon"></span></th>`;
+    });
+    
+    thead.innerHTML = headerHTML;
+    
+    // Re-render table body with new columns
+    const multiplier = currentTokenMultiplier;
+    const cheapestInput = Math.min(...pricingData.map(m => m.inputPrice));
+    const cheapestOutput = Math.min(...pricingData.map(m => m.outputPrice));
+    
+    tbody.innerHTML = '';
+    
+    pricingData.forEach(model => {
+        const tr = document.createElement('tr');
+        const scaledInput = model.inputPrice * multiplier;
+        const scaledOutput = model.outputPrice * multiplier;
+        const isCheapestInput = model.inputPrice === cheapestInput;
+        const isCheapestOutput = model.outputPrice === cheapestOutput;
+        
+        let cellsHTML = '<td class="td-checkbox"></td>'; // checkbox placeholder
+        
+        COLUMN_DEFS.forEach(col => {
+            const show = config[col.id] !== undefined ? config[col.id] : col.default;
+            if (!show) return;
+            
+            switch (col.id) {
+                case 'provider':
+                    cellsHTML += `<td><span class="provider-badge provider-${model.providerClass}">${model.provider}</span></td>`;
+                    break;
+                case 'model':
+                    cellsHTML += `
+                        <td>
+                            <a href="#" class="model-link" data-model="${model.model}">
+                                <span class="model-name">${model.model}</span>
+                                <span class="model-link-icon">📊</span>
+                            </a>
+                            <br><small style="color: var(--text-muted); font-size: 0.8rem;">${model.description}</small>
+                        </td>
+                    `;
+                    break;
+                case 'input':
+                    cellsHTML += `
+                        <td>
+                            <span class="price-cell ${isCheapestInput ? 'price-cheapest' : ''}">
+                                ${formatCurrencyShort(scaledInput)}
+                                ${isCheapestInput ? ' 🏆' : ''}
+                            </span>
+                        </td>
+                    `;
+                    break;
+                case 'output':
+                    cellsHTML += `
+                        <td>
+                            <span class="price-cell ${isCheapestOutput ? 'price-cheapest' : ''}">
+                                ${formatCurrencyShort(scaledOutput)}
+                                ${isCheapestOutput ? ' 🏆' : ''}
+                            </span>
+                        </td>
+                    `;
+                    break;
+                case 'context':
+                    cellsHTML += `<td><span class="context-cell">${model.contextWindow}</span></td>`;
+                    break;
+                default:
+                    // Benchmark columns
+                    if (col.benchmark && model.benchmarks && model.benchmarks[col.benchmark] !== undefined) {
+                        const score = model.benchmarks[col.benchmark];
+                        const best = Math.max(...pricingData.filter(m => m.benchmarks && m.benchmarks[col.benchmark]).map(m => m.benchmarks[col.benchmark]));
+                        const isBest = score === best;
+                        cellsHTML += `
+                            <td>
+                                <span class="benchmark-table-score ${isBest ? 'benchmark-table-best' : ''}">
+                                    ${score.toFixed(1)}%
+                                    ${isBest ? ' 👑' : ''}
+                                </span>
+                                <div class="benchmark-table-bar-bg">
+                                    <div class="benchmark-table-bar" style="width: ${(score / 100) * 100}%"></div>
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        cellsHTML += `<td><span class="text-muted">—</span></td>`;
+                    }
+                    break;
+            }
+        });
+        
+        tr.innerHTML = cellsHTML;
+        tbody.appendChild(tr);
+    });
+    
+    // Re-initialize checkboxes and sortable headers
+    initModelCheckboxes();
+    initSortableTable();
+    
+    // Re-bind select-all
+    const selectAll = document.getElementById('select-all-models');
+    if (selectAll) {
+        selectAll.addEventListener('change', () => {
+            const checkboxes = tbody.querySelectorAll('.model-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            // Update compare bar
+            const compareBar = document.getElementById('compare-bar');
+            const compareBarCount = document.getElementById('compare-bar-count');
+            const checked = tbody.querySelectorAll('.model-checkbox:checked');
+            if (checked.length > 0) {
+                compareBarCount.textContent = `${checked.length} model${checked.length !== 1 ? 's' : ''} selected`;
+                compareBar.classList.remove('hidden');
+            } else {
+                compareBar.classList.add('hidden');
+            }
+        });
+    }
+}
+
 // ===== Provider Filter =====
 
 function initProviderFilter() {
@@ -593,7 +808,7 @@ function initProviderFilter() {
         let visibleCount = 0;
         
         rows.forEach(row => {
-            const providerCell = row.querySelector('td:first-child .provider-badge');
+            const providerCell = row.querySelector('.provider-badge');
             if (!providerCell) return;
             
             const provider = providerCell.textContent.trim();
@@ -633,11 +848,16 @@ function initModelCheckboxes() {
             // Check if checkbox already exists
             if (row.querySelector('.model-checkbox')) return;
             
-            const checkboxCell = document.createElement('td');
-            checkboxCell.className = 'td-checkbox';
-            const modelName = row.querySelector('.model-link')?.dataset?.model || '';
-            checkboxCell.innerHTML = `<input type="checkbox" class="model-checkbox" value="${modelName}">`;
-            row.insertBefore(checkboxCell, row.firstChild);
+            // Check if the header has a checkbox column (meaning applyColumnConfig already added it)
+            const headerCheckbox = document.querySelector('#pricing-table thead .th-checkbox');
+            if (headerCheckbox) {
+                // The checkbox column is already in the header, so we need to add it to the row
+                const checkboxCell = document.createElement('td');
+                checkboxCell.className = 'td-checkbox';
+                const modelName = row.querySelector('.model-link')?.dataset?.model || '';
+                checkboxCell.innerHTML = `<input type="checkbox" class="model-checkbox" value="${modelName}">`;
+                row.insertBefore(checkboxCell, row.firstChild);
+            }
         });
     }
     

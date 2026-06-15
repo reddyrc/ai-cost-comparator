@@ -399,6 +399,122 @@ tbody tr {
     margin-left: auto;
 }
 
+/* ===== Benchmark Scores in Pricing Table ===== */
+.benchmark-table-score {
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.benchmark-table-best {
+    color: var(--green);
+}
+
+.benchmark-table-bar-bg {
+    height: 4px;
+    background: var(--bg-hover);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+    max-width: 80px;
+}
+
+.benchmark-table-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    border-radius: 2px;
+    transition: width 0.6s ease;
+}
+
+/* ===== Column Config Button ===== */
+.btn-columns {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.btn-columns:hover {
+    border-color: var(--accent);
+    color: var(--accent-light);
+    background: rgba(108, 92, 231, 0.1);
+}
+
+/* ===== Column Config Modal ===== */
+.modal-narrow {
+    max-width: 480px !important;
+}
+
+.column-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.column-toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.column-toggle-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.column-toggle-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.column-toggle-label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+.column-toggle-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.column-toggle-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.column-toggle-item.disabled input[type="checkbox"] {
+    cursor: not-allowed;
+}
+
+.column-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
 /* ===== Refresh Button (legacy, kept for compatibility) ===== */
 .btn-refresh {
     display: inline-flex;

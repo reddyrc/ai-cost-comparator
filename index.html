@@ -52,6 +52,7 @@
                     <option value="all">All Providers</option>
                 </select>
                 <span class="filter-count" id="filter-count">Showing all models</span>
+                <button id="columns-btn" class="btn-columns" title="Customize columns">⚙️ Columns</button>
             </div>
             <div class="table-container">
                 <table id="pricing-table">
@@ -264,6 +265,26 @@
                     <div class="modal-estimates" id="modal-estimates">
                         <!-- Populated by JavaScript -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Column Config Modal ===== -->
+    <div id="columns-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-narrow">
+            <button class="modal-close" id="columns-modal-close">&times;</button>
+            <div class="modal-header">
+                <h2>Customize Columns</h2>
+                <p class="modal-subtitle" style="margin-top: 4px;">Toggle columns to show or hide in the pricing table</p>
+            </div>
+            <div class="modal-body">
+                <div class="column-toggles" id="column-toggles">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div class="column-modal-actions">
+                    <button id="columns-reset" class="btn-ghost">Reset to Default</button>
+                    <button id="columns-apply" class="btn-primary btn-sm">Apply</button>
                 </div>
             </div>
         </div>
