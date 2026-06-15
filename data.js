@@ -24,7 +24,8 @@ const pricingData = [
             gpqa: 88.1,
             ifeval: 91.3
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
     {
         provider: 'OpenAI',
@@ -43,7 +44,8 @@ const pricingData = [
             gpqa: 79.3,
             ifeval: 85.1
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
     {
         provider: 'OpenAI',
@@ -62,7 +64,8 @@ const pricingData = [
             gpqa: 65.4,
             ifeval: 79.8
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
     {
         provider: 'OpenAI',
@@ -81,7 +84,8 @@ const pricingData = [
             gpqa: 75.8,
             ifeval: 83.0
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
     {
         provider: 'OpenAI',
@@ -100,7 +104,8 @@ const pricingData = [
             gpqa: 48.2,
             ifeval: 65.3
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
     {
         provider: 'OpenAI',
@@ -119,7 +124,8 @@ const pricingData = [
             gpqa: 86.7,
             ifeval: 89.2
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
     {
         provider: 'OpenAI',
@@ -138,7 +144,8 @@ const pricingData = [
             gpqa: 78.4,
             ifeval: 82.6
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
     {
         provider: 'OpenAI',
@@ -157,7 +164,8 @@ const pricingData = [
             gpqa: 81.3,
             ifeval: 84.7
         },
-        docsUrl: 'https://platform.openai.com/docs/models'
+        docsUrl: 'https://platform.openai.com/docs/models',
+        affiliateUrl: 'https://platform.openai.com/signup'
     },
 
     // ===== Anthropic =====
@@ -180,7 +188,8 @@ const pricingData = [
             gpqa: 89.5,
             ifeval: 92.4
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -199,7 +208,8 @@ const pricingData = [
             gpqa: 85.2,
             ifeval: 89.7
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -218,7 +228,8 @@ const pricingData = [
             gpqa: 76.8,
             ifeval: 83.5
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -237,7 +248,8 @@ const pricingData = [
             gpqa: 87.4,
             ifeval: 90.1
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -256,7 +268,8 @@ const pricingData = [
             gpqa: 84.9,
             ifeval: 88.3
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -275,7 +288,8 @@ const pricingData = [
             gpqa: 81.6,
             ifeval: 86.2
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -294,7 +308,8 @@ const pricingData = [
             gpqa: 79.8,
             ifeval: 84.6
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -313,7 +328,8 @@ const pricingData = [
             gpqa: 65.2,
             ifeval: 75.8
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
     {
         provider: 'Anthropic',
@@ -332,7 +348,8 @@ const pricingData = [
             gpqa: 74.5,
             ifeval: 80.3
         },
-        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models'
+        docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        affiliateUrl: 'https://console.anthropic.com/signup'
     },
 
     // ===== Google =====
@@ -355,7 +372,8 @@ const pricingData = [
             gpqa: 70.1,
             ifeval: 78.6
         },
-        docsUrl: 'https://ai.google.dev/gemini-api/docs/models'
+        docsUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        affiliateUrl: 'https://ai.google.dev/gemini-api'
     },
     {
         provider: 'Google',
@@ -374,7 +392,8 @@ const pricingData = [
             gpqa: 80.8,
             ifeval: 85.3
         },
-        docsUrl: 'https://ai.google.dev/gemini-api/docs/models'
+        docsUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        affiliateUrl: 'https://ai.google.dev/gemini-api'
     },
     {
         provider: 'Google',
@@ -393,7 +412,8 @@ const pricingData = [
             gpqa: 77.8,
             ifeval: 82.4
         },
-        docsUrl: 'https://ai.google.dev/gemini-api/docs/models'
+        docsUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        affiliateUrl: 'https://ai.google.dev/gemini-api'
     },
     {
         provider: 'Google',
@@ -412,7 +432,8 @@ const pricingData = [
             gpqa: 63.5,
             ifeval: 72.1
         },
-        docsUrl: 'https://ai.google.dev/gemini-api/docs/models'
+        docsUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        affiliateUrl: 'https://ai.google.dev/gemini-api'
     },
     {
         provider: 'Google',
@@ -431,7 +452,8 @@ const pricingData = [
             gpqa: 85.4,
             ifeval: 89.1
         },
-        docsUrl: 'https://ai.google.dev/gemini-api/docs/models'
+        docsUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        affiliateUrl: 'https://ai.google.dev/gemini-api'
     },
 
     // ===== Meta =====
@@ -453,7 +475,8 @@ const pricingData = [
             gpqa: 78.2,
             ifeval: 83.8
         },
-        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats'
+        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats',
+        affiliateUrl: 'https://llama.meta.com/'
     },
     {
         provider: 'Meta',
@@ -472,7 +495,8 @@ const pricingData = [
             gpqa: 70.3,
             ifeval: 78.5
         },
-        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats'
+        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats',
+        affiliateUrl: 'https://llama.meta.com/'
     },
     {
         provider: 'Meta',
@@ -491,7 +515,8 @@ const pricingData = [
             gpqa: 52.4,
             ifeval: 65.2
         },
-        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats'
+        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats',
+        affiliateUrl: 'https://llama.meta.com/'
     },
     {
         provider: 'Meta',
@@ -510,7 +535,8 @@ const pricingData = [
             gpqa: 60.1,
             ifeval: 70.5
         },
-        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats'
+        docsUrl: 'https://llama.meta.com/docs/model-cards-and-prompt-formats',
+        affiliateUrl: 'https://llama.meta.com/'
     },
 
     // ===== Mistral =====
@@ -533,7 +559,8 @@ const pricingData = [
             gpqa: 76.4,
             ifeval: 81.2
         },
-        docsUrl: 'https://docs.mistral.ai/getting-started/models/'
+        docsUrl: 'https://docs.mistral.ai/getting-started/models/',
+        affiliateUrl: 'https://console.mistral.ai/signup'
     },
     {
         provider: 'Mistral',
@@ -552,7 +579,8 @@ const pricingData = [
             gpqa: 58.3,
             ifeval: 68.9
         },
-        docsUrl: 'https://docs.mistral.ai/getting-started/models/'
+        docsUrl: 'https://docs.mistral.ai/getting-started/models/',
+        affiliateUrl: 'https://console.mistral.ai/signup'
     },
     {
         provider: 'Mistral',
@@ -571,7 +599,8 @@ const pricingData = [
             gpqa: 55.8,
             ifeval: 72.3
         },
-        docsUrl: 'https://docs.mistral.ai/getting-started/models/'
+        docsUrl: 'https://docs.mistral.ai/getting-started/models/',
+        affiliateUrl: 'https://console.mistral.ai/signup'
     },
 
     // ===== DeepSeek =====
@@ -594,7 +623,8 @@ const pricingData = [
             gpqa: 82.1,
             ifeval: 86.7
         },
-        docsUrl: 'https://api-docs.deepseek.com/'
+        docsUrl: 'https://api-docs.deepseek.com/',
+        affiliateUrl: 'https://platform.deepseek.com/signup'
     },
     {
         provider: 'DeepSeek',
@@ -613,7 +643,8 @@ const pricingData = [
             gpqa: 85.6,
             ifeval: 88.2
         },
-        docsUrl: 'https://api-docs.deepseek.com/'
+        docsUrl: 'https://api-docs.deepseek.com/',
+        affiliateUrl: 'https://platform.deepseek.com/signup'
     },
     {
         provider: 'DeepSeek',
@@ -632,7 +663,8 @@ const pricingData = [
             gpqa: 62.4,
             ifeval: 74.1
         },
-        docsUrl: 'https://api-docs.deepseek.com/'
+        docsUrl: 'https://api-docs.deepseek.com/',
+        affiliateUrl: 'https://platform.deepseek.com/signup'
     },
     {
         provider: 'DeepSeek',
@@ -651,7 +683,8 @@ const pricingData = [
             gpqa: 78.5,
             ifeval: 83.4
         },
-        docsUrl: 'https://api-docs.deepseek.com/'
+        docsUrl: 'https://api-docs.deepseek.com/',
+        affiliateUrl: 'https://platform.deepseek.com/signup'
     },
     {
         provider: 'DeepSeek',
@@ -670,7 +703,8 @@ const pricingData = [
             gpqa: 83.2,
             ifeval: 87.9
         },
-        docsUrl: 'https://api-docs.deepseek.com/'
+        docsUrl: 'https://api-docs.deepseek.com/',
+        affiliateUrl: 'https://platform.deepseek.com/signup'
     },
 
     // ===== Cohere =====
@@ -692,7 +726,8 @@ const pricingData = [
             gpqa: 60.2,
             ifeval: 72.8
         },
-        docsUrl: 'https://docs.cohere.com/docs/models'
+        docsUrl: 'https://docs.cohere.com/docs/models',
+        affiliateUrl: 'https://dashboard.cohere.com/signup'
     },
     {
         provider: 'Cohere',
@@ -711,7 +746,8 @@ const pricingData = [
             gpqa: 52.4,
             ifeval: 65.1
         },
-        docsUrl: 'https://docs.cohere.com/docs/models'
+        docsUrl: 'https://docs.cohere.com/docs/models',
+        affiliateUrl: 'https://dashboard.cohere.com/signup'
     },
     {
         provider: 'Cohere',
@@ -730,7 +766,8 @@ const pricingData = [
             gpqa: 74.8,
             ifeval: 80.3
         },
-        docsUrl: 'https://docs.cohere.com/docs/models'
+        docsUrl: 'https://docs.cohere.com/docs/models',
+        affiliateUrl: 'https://dashboard.cohere.com/signup'
     },
 
     // ===== Kimi (Moonshot AI) =====
@@ -754,7 +791,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k27-code'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k27-code',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -773,7 +811,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k26'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k26',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -792,7 +831,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k25'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k25',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -811,7 +851,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -830,7 +871,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -849,7 +891,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -868,7 +911,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -887,7 +931,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     },
     {
         provider: 'Kimi',
@@ -906,7 +951,8 @@ const pricingData = [
             gpqa: null,
             ifeval: null
         },
-        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1',
+        affiliateUrl: 'https://platform.kimi.com/signup'
     }
 ];
 

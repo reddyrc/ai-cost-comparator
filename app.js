@@ -534,6 +534,17 @@ function openModelModal(model) {
     const sourcePricing = document.getElementById('modal-source-pricing');
     sourcePricing.href = model.docsUrl || '#';
     
+    // Set affiliate link
+    const affiliateLink = document.getElementById('modal-affiliate-link');
+    if (affiliateLink) {
+        if (model.affiliateUrl) {
+            affiliateLink.href = model.affiliateUrl;
+            affiliateLink.style.display = 'inline-flex';
+        } else {
+            affiliateLink.style.display = 'none';
+        }
+    }
+    
     // Set pricing
     document.getElementById('modal-input-price').textContent = formatCurrency(model.inputPrice);
     document.getElementById('modal-output-price').textContent = formatCurrency(model.outputPrice);
