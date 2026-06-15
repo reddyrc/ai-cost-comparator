@@ -365,6 +365,23 @@ const pricingData = [
         },
         docsUrl: 'https://ai.google.dev/gemini-api/docs/models'
     },
+    {
+        provider: 'Google',
+        providerClass: 'google',
+        model: 'Gemini 3.1 Pro',
+        inputPrice: 0.0015,
+        outputPrice: 0.006,
+        contextWindow: '2M',
+        description: 'Latest flagship Pro model with enhanced reasoning',
+        benchmarks: {
+            mmlu: 90.8,
+            humaneval: 92.3,
+            math: 88.6,
+            gpqa: 85.4,
+            ifeval: 89.1
+        },
+        docsUrl: 'https://ai.google.dev/gemini-api/docs/models'
+    },
 
     // ===== Meta =====
     {
