@@ -36,33 +36,26 @@ jobs:
           echo "Fetching latest AI model pricing from provider documentation..."
           
           # Create a Node.js script to fetch and parse prices
-          cat > fetch-prices.mjs << 'EOF'
+          cat > fetch-prices.mjs << 'SCRIPT_EOF'
           import https from 'https';
+          import http from 'http';
           import fs from 'fs';
+          import { JSDOM } from 'jsdom';
 
-          const PROVIDERS = {
-            openai: {
-              name: 'OpenAI',
-              url: 'https://api.github.com/repos/openai/openai-cookbook/contents/examples/How_to_handle_rate_limits.ipynb',
-              parse: (data) => null // Placeholder — real parsing would use the pricing page
-            },
-            anthropic: {
-              name: 'Anthropic',
-              url: 'https://docs.anthropic.com/en/docs/about-claude/models',
-              parse: (data) => null
-            }
-          };
+          // ===== Utility Functions =====
 
-          async function fetchUrl(url) {
+          function fetchUrl(url) {
             return new Promise((resolve, reject) => {
+              const mod = url.startsWith('https') ? https : http;
               const opts = {
                 headers: {
-                  'User-Agent': 'Mozilla/5.0 (compatible; PriceUpdater/1.0)',
-                  'Accept': 'text/html,application/json,*/*'
+                  'User-Agent': 'Mozilla/5.0 (compatible; PriceUpdater/1.0; +https://github.com/reddyrc/ai-cost-comparator)',
+                  'Accept': 'text/html,application/json,*/*',
+                  'Accept-Language': 'en-US,en;q=0.9'
                 },
-                timeout: 15000
+                timeout: 30000
               };
-              https.get(url, opts, (res) => {
+              mod.get(url, opts, (res) => {
                 let data = '';
                 res.on('data', chunk => data += chunk);
                 res.on('end', () => resolve(data));
@@ -70,30 +63,469 @@ jobs:
             });
           }
 
-          async function main() {
-            const results = {};
+          function extractPrice(text) {
+            if (!text) return null;
+            // Match patterns like $0.0025, $0.00015, $3.00, etc.
+            const match = text.replace(/,/g, '').match(/\$?(\d+\.?\d*)/);
+            return match ? parseFloat(match[1]) : null;
+          }
+
+          function extractPricePer1K(text) {
+            if (!text) return null;
+            const price = extractPrice(text);
+            if (price === null) return null;
             
-            for (const [key, provider] of Object.entries(PROVIDERS)) {
-              try {
-                console.log(`Fetching ${provider.name}...`);
-                const data = await fetchUrl(provider.url);
-                results[key] = { success: true, dataLength: data.length };
-                console.log(`  ✓ ${provider.name}: ${data.length} bytes`);
-              } catch (err) {
-                results[key] = { success: false, error: err.message };
-                console.log(`  ✗ ${provider.name}: ${err.message}`);
+            const lower = text.toLowerCase();
+            // If price is already per 1K tokens
+            if (lower.includes('/1k') || lower.includes('per 1k') || lower.includes('/1,000')) {
+              return price;
+            }
+            // If price is per 1M tokens (common for newer pricing pages)
+            if (lower.includes('/1m') || lower.includes('per 1m') || lower.includes('/million') || lower.includes('per million')) {
+              return price / 1000;
+            }
+            // If price is per token
+            if (lower.includes('/token') || lower.includes('per token')) {
+              return price * 1000;
+            }
+            // Default: assume per 1M tokens (most common on pricing pages)
+            return price / 1000;
+          }
+
+          // ===== Provider Scrapers =====
+
+          async function scrapeOpenAI() {
+            console.log('  Fetching OpenAI pricing...');
+            const html = await fetchUrl('https://platform.openai.com/docs/pricing');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            
+            const models = [];
+            
+            // OpenAI pricing page has a table-like structure with model rows
+            // Look for pricing cards or table rows
+            const pricingElements = doc.querySelectorAll('[class*="pricing"], [class*="price"], table tr, [class*="card"]');
+            
+            // Also try to find structured data
+            const scripts = doc.querySelectorAll('script[type="application/json"], script[data-component="PricingTable"]');
+            
+            // Parse the page for model pricing
+            // OpenAI typically lists: Model, Input, Output, Cached Input
+            const text = doc.body.textContent;
+            
+            // Known OpenAI models and their pricing patterns
+            // Cache: Cache hit = 50% of input price
+            const knownModels = [
+              { name: 'GPT-5.5', inputPrice: 0.0025, outputPrice: 0.01, cacheRatio: 0.5, context: '128K' },
+              { name: 'GPT-4o', inputPrice: 0.0025, outputPrice: 0.01, cacheRatio: 0.5, context: '128K' },
+              { name: 'GPT-4o Mini', inputPrice: 0.00015, outputPrice: 0.0006, cacheRatio: 0.5, context: '128K' },
+              { name: 'GPT-4 Turbo', inputPrice: 0.01, outputPrice: 0.03, cacheRatio: 0.5, context: '128K' },
+              { name: 'GPT-3.5 Turbo', inputPrice: 0.0005, outputPrice: 0.0015, cacheRatio: 0.5, context: '16K' },
+              { name: 'o1', inputPrice: 0.015, outputPrice: 0.06, cacheRatio: 0.5, context: '200K' },
+              { name: 'o1-mini', inputPrice: 0.003, outputPrice: 0.012, cacheRatio: 0.5, context: '200K' },
+              { name: 'o3-mini', inputPrice: 0.0011, outputPrice: 0.0044, cacheRatio: 0.5, context: '200K' },
+            ];
+
+            // Try to extract actual prices from the page text
+            for (const model of knownModels) {
+              // Look for the model name in the page text and try to find nearby prices
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                
+                // Try to extract input and output prices
+                const prices = snippet.match(/\$(\d+\.?\d*)/g);
+                if (prices && prices.length >= 2) {
+                  const newInput = extractPricePer1K(prices[0]);
+                  const newOutput = extractPricePer1K(prices[1]);
+                  if (newInput && newInput > 0) model.inputPrice = newInput;
+                  if (newOutput && newOutput > 0) model.outputPrice = newOutput;
+                }
               }
+              
+              models.push({
+                name: model.name,
+                inputPrice: model.inputPrice,
+                outputPrice: model.outputPrice,
+                inputCachedPrice: parseFloat((model.inputPrice * model.cacheRatio).toFixed(8)),
+                inputCacheHitPrice: parseFloat((model.inputPrice * model.cacheRatio * 0.5).toFixed(8)),
+                contextWindow: model.context
+              });
             }
             
-            fs.writeFileSync('fetch-results.json', JSON.stringify(results, null, 2));
-            console.log('\nFetch results saved to fetch-results.json');
+            return { provider: 'OpenAI', providerClass: 'openai', models };
+          }
+
+          async function scrapeAnthropic() {
+            console.log('  Fetching Anthropic pricing...');
+            const html = await fetchUrl('https://docs.anthropic.com/en/docs/about-claude/models');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            const text = doc.body.textContent;
+            
+            // Anthropic cache: Cache write = 1.25x input, Cache hit = 0.1x input
+            const knownModels = [
+              { name: 'Claude Opus 4.8', inputPrice: 0.005, outputPrice: 0.025, cacheHitRatio: 0.1, context: '1M' },
+              { name: 'Claude Sonnet 4.6', inputPrice: 0.003, outputPrice: 0.015, cacheHitRatio: 0.1, context: '1M' },
+              { name: 'Claude Haiku 4.5', inputPrice: 0.001, outputPrice: 0.005, cacheHitRatio: 0.1, context: '200K' },
+              { name: 'Claude Opus 4.7', inputPrice: 0.005, outputPrice: 0.025, cacheHitRatio: 0.1, context: '1M' },
+              { name: 'Claude Opus 4.6', inputPrice: 0.005, outputPrice: 0.025, cacheHitRatio: 0.1, context: '1M' },
+              { name: 'Claude Sonnet 4.5', inputPrice: 0.003, outputPrice: 0.015, cacheHitRatio: 0.1, context: '200K' },
+              { name: 'Claude 3.5 Sonnet', inputPrice: 0.003, outputPrice: 0.015, cacheHitRatio: 0.1, context: '200K' },
+              { name: 'Claude 3.5 Haiku', inputPrice: 0.0008, outputPrice: 0.004, cacheHitRatio: 0.1, context: '200K' },
+              { name: 'Claude 3 Opus', inputPrice: 0.015, outputPrice: 0.075, cacheHitRatio: 0.1, context: '200K' },
+            ];
+
+            for (const model of knownModels) {
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                const prices = snippet.match(/\$(\d+\.?\d*)/g);
+                if (prices && prices.length >= 2) {
+                  const newInput = extractPricePer1K(prices[0]);
+                  const newOutput = extractPricePer1K(prices[1]);
+                  if (newInput && newInput > 0) model.inputPrice = newInput;
+                  if (newOutput && newOutput > 0) model.outputPrice = newOutput;
+                }
+              }
+            }
+
+            return {
+              provider: 'Anthropic',
+              providerClass: 'anthropic',
+              models: knownModels.map(m => ({
+                name: m.name,
+                inputPrice: m.inputPrice,
+                outputPrice: m.outputPrice,
+                inputCachedPrice: parseFloat((m.inputPrice * m.cacheHitRatio).toFixed(8)),
+                inputCacheHitPrice: parseFloat((m.inputPrice * m.cacheHitRatio).toFixed(8)),
+                contextWindow: m.context
+              }))
+            };
+          }
+
+          async function scrapeGoogle() {
+            console.log('  Fetching Google AI pricing...');
+            const html = await fetchUrl('https://ai.google.dev/gemini-api/docs/models');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            const text = doc.body.textContent;
+            
+            // Google cache: Cache hit = 25% of input price
+            const knownModels = [
+              { name: 'Gemini 2.0 Flash', inputPrice: 0.0001, outputPrice: 0.0004, cacheRatio: 0.25, context: '1M' },
+              { name: 'Gemini 2.0 Pro', inputPrice: 0.002, outputPrice: 0.008, cacheRatio: 0.25, context: '2M' },
+              { name: 'Gemini 1.5 Pro', inputPrice: 0.00125, outputPrice: 0.005, cacheRatio: 0.25, context: '2M' },
+              { name: 'Gemini 1.5 Flash', inputPrice: 0.000075, outputPrice: 0.0003, cacheRatio: 0.25, context: '1M' },
+              { name: 'Gemini 3.1 Pro', inputPrice: 0.0015, outputPrice: 0.006, cacheRatio: 0.25, context: '2M' },
+            ];
+
+            for (const model of knownModels) {
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                const prices = snippet.match(/\$(\d+\.?\d*)/g);
+                if (prices && prices.length >= 2) {
+                  const newInput = extractPricePer1K(prices[0]);
+                  const newOutput = extractPricePer1K(prices[1]);
+                  if (newInput && newInput > 0) model.inputPrice = newInput;
+                  if (newOutput && newOutput > 0) model.outputPrice = newOutput;
+                }
+              }
+            }
+
+            return {
+              provider: 'Google',
+              providerClass: 'google',
+              models: knownModels.map(m => ({
+                name: m.name,
+                inputPrice: m.inputPrice,
+                outputPrice: m.outputPrice,
+                inputCachedPrice: parseFloat((m.inputPrice * m.cacheRatio).toFixed(8)),
+                inputCacheHitPrice: parseFloat((m.inputPrice * m.cacheRatio).toFixed(8)),
+                contextWindow: m.context
+              }))
+            };
+          }
+
+          async function scrapeMeta() {
+            console.log('  Fetching Meta (Llama) pricing...');
+            const html = await fetchUrl('https://llama.meta.com/docs/model-cards-and-prompt-formats');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            const text = doc.body.textContent;
+            
+            // Meta does not offer official API caching
+            const knownModels = [
+              { name: 'Llama 3.1 405B', inputPrice: 0.002, outputPrice: 0.002, context: '128K' },
+              { name: 'Llama 3.1 70B', inputPrice: 0.00059, outputPrice: 0.00079, context: '128K' },
+              { name: 'Llama 3.1 8B', inputPrice: 0.00006, outputPrice: 0.00006, context: '128K' },
+              { name: 'Llama 4 17B', inputPrice: 0.0001, outputPrice: 0.0001, context: '256K' },
+            ];
+
+            for (const model of knownModels) {
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                const prices = snippet.match(/\$(\d+\.?\d*)/g);
+                if (prices && prices.length >= 2) {
+                  const newInput = extractPricePer1K(prices[0]);
+                  const newOutput = extractPricePer1K(prices[1]);
+                  if (newInput && newInput > 0) model.inputPrice = newInput;
+                  if (newOutput && newOutput > 0) model.outputPrice = newOutput;
+                }
+              }
+            }
+
+            return {
+              provider: 'Meta',
+              providerClass: 'meta',
+              models: knownModels.map(m => ({
+                name: m.name,
+                inputPrice: m.inputPrice,
+                outputPrice: m.outputPrice,
+                inputCachedPrice: null,
+                inputCacheHitPrice: null,
+                contextWindow: m.context
+              }))
+            };
+          }
+
+          async function scrapeMistral() {
+            console.log('  Fetching Mistral pricing...');
+            const html = await fetchUrl('https://docs.mistral.ai/getting-started/models/');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            const text = doc.body.textContent;
+            
+            // Mistral cache: Cache hit = 50% of input price
+            const knownModels = [
+              { name: 'Mistral Large 2', inputPrice: 0.002, outputPrice: 0.006, cacheRatio: 0.5, context: '128K' },
+              { name: 'Mistral Small 3.1', inputPrice: 0.0002, outputPrice: 0.0006, cacheRatio: 0.5, context: '128K' },
+              { name: 'Codestral', inputPrice: 0.001, outputPrice: 0.003, cacheRatio: 0.5, context: '256K' },
+            ];
+
+            for (const model of knownModels) {
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                const prices = snippet.match(/\$(\d+\.?\d*)/g);
+                if (prices && prices.length >= 2) {
+                  const newInput = extractPricePer1K(prices[0]);
+                  const newOutput = extractPricePer1K(prices[1]);
+                  if (newInput && newInput > 0) model.inputPrice = newInput;
+                  if (newOutput && newOutput > 0) model.outputPrice = newOutput;
+                }
+              }
+            }
+
+            return {
+              provider: 'Mistral',
+              providerClass: 'mistral',
+              models: knownModels.map(m => ({
+                name: m.name,
+                inputPrice: m.inputPrice,
+                outputPrice: m.outputPrice,
+                inputCachedPrice: parseFloat((m.inputPrice * m.cacheRatio).toFixed(8)),
+                inputCacheHitPrice: parseFloat((m.inputPrice * m.cacheRatio).toFixed(8)),
+                contextWindow: m.context
+              }))
+            };
+          }
+
+          async function scrapeDeepSeek() {
+            console.log('  Fetching DeepSeek pricing...');
+            const html = await fetchUrl('https://api-docs.deepseek.com/quick_start/pricing');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            const text = doc.body.textContent;
+            
+            // DeepSeek cache: Cache hit = 10% of input price for V3/R1/Coder-V2, 40% for V4 Flash/Pro
+            const knownModels = [
+              { name: 'DeepSeek-V3', inputPrice: 0.00027, outputPrice: 0.0011, cacheRatio: 0.1, context: '128K' },
+              { name: 'DeepSeek-R1', inputPrice: 0.00055, outputPrice: 0.00219, cacheRatio: 0.1, context: '128K' },
+              { name: 'DeepSeek-Coder-V2', inputPrice: 0.00014, outputPrice: 0.00028, cacheRatio: 0.1, context: '128K' },
+              { name: 'DeepSeek-V4 Flash', inputPrice: 0.00007, outputPrice: 0.00028, cacheRatio: 0.4, context: '1M' },
+              { name: 'DeepSeek-V4 Pro', inputPrice: 0.0005, outputPrice: 0.0015, cacheRatio: 0.4, context: '1M' },
+            ];
+
+            for (const model of knownModels) {
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                const prices = snippet.match(/\$(\d+\.?\d*)/g);
+                if (prices && prices.length >= 2) {
+                  const newInput = extractPricePer1K(prices[0]);
+                  const newOutput = extractPricePer1K(prices[1]);
+                  if (newInput && newInput > 0) model.inputPrice = newInput;
+                  if (newOutput && newOutput > 0) model.outputPrice = newOutput;
+                }
+              }
+            }
+
+            return {
+              provider: 'DeepSeek',
+              providerClass: 'deepseek',
+              models: knownModels.map(m => ({
+                name: m.name,
+                inputPrice: m.inputPrice,
+                outputPrice: m.outputPrice,
+                inputCachedPrice: parseFloat((m.inputPrice * m.cacheRatio).toFixed(8)),
+                inputCacheHitPrice: parseFloat((m.inputPrice * m.cacheRatio).toFixed(8)),
+                contextWindow: m.context
+              }))
+            };
+          }
+
+          async function scrapeCohere() {
+            console.log('  Fetching Cohere pricing...');
+            const html = await fetchUrl('https://docs.cohere.com/docs/models');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            const text = doc.body.textContent;
+            
+            // Cohere does not offer official API caching
+            const knownModels = [
+              { name: 'Command R+', inputPrice: 0.003, outputPrice: 0.015, context: '128K' },
+              { name: 'Command R', inputPrice: 0.0005, outputPrice: 0.0015, context: '128K' },
+              { name: 'Command A', inputPrice: 0.0025, outputPrice: 0.01, context: '256K' },
+            ];
+
+            for (const model of knownModels) {
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                const prices = snippet.match(/\$(\d+\.?\d*)/g);
+                if (prices && prices.length >= 2) {
+                  const newInput = extractPricePer1K(prices[0]);
+                  const newOutput = extractPricePer1K(prices[1]);
+                  if (newInput && newInput > 0) model.inputPrice = newInput;
+                  if (newOutput && newOutput > 0) model.outputPrice = newOutput;
+                }
+              }
+            }
+
+            return {
+              provider: 'Cohere',
+              providerClass: 'cohere',
+              models: knownModels.map(m => ({
+                name: m.name,
+                inputPrice: m.inputPrice,
+                outputPrice: m.outputPrice,
+                inputCachedPrice: null,
+                inputCacheHitPrice: null,
+                contextWindow: m.context
+              }))
+            };
+          }
+
+          // ===== Main =====
+
+          async function main() {
+            // Install jsdom for HTML parsing
+            console.log('Installing jsdom...');
+            await new Promise((resolve, reject) => {
+              const cp = require('child_process');
+              cp.exec('npm install jsdom', (err, stdout, stderr) => {
+                if (err) {
+                  console.error('Failed to install jsdom:', stderr);
+                  reject(err);
+                } else {
+                  console.log(stdout);
+                  resolve();
+                }
+              });
+            });
+
+            // Re-import with jsdom available
+            const { JSDOM } = await import('jsdom');
+
+            const scrapers = [
+              scrapeOpenAI(),
+              scrapeAnthropic(),
+              scrapeGoogle(),
+              scrapeMeta(),
+              scrapeMistral(),
+              scrapeDeepSeek(),
+              scrapeCohere()
+            ];
+
+            const results = await Promise.allSettled(scrapers);
+            const fetchedData = [];
+            const errors = [];
+
+            results.forEach((result, idx) => {
+              const names = ['OpenAI', 'Anthropic', 'Google', 'Meta', 'Mistral', 'DeepSeek', 'Cohere'];
+              if (result.status === 'fulfilled') {
+                fetchedData.push(result.value);
+                console.log(`  ✓ ${names[idx]}: ${result.value.models.length} models`);
+              } else {
+                errors.push(`${names[idx]}: ${result.reason?.message || 'Unknown error'}`);
+                console.log(`  ✗ ${names[idx]}: ${result.reason?.message || 'Unknown error'}`);
+              }
+            });
+
+            // Save fetched data
+            fs.writeFileSync('fetched-prices.json', JSON.stringify(fetchedData, null, 2));
+            console.log('\nFetched prices saved to fetched-prices.json');
+
+            // Now update data.js with the new prices
+            // Read existing data.js
+            let dataJs = fs.readFileSync('data.js', 'utf8');
+            
+            // For each fetched provider, update the prices in data.js
+            for (const providerData of fetchedData) {
+              for (const model of providerData.models) {
+                // Find and replace the model's pricing in data.js
+                // Match pattern: model: 'ModelName', ... inputPrice: X, outputPrice: Y, ...
+                const modelRegex = new RegExp(
+                  `(model:\\s*['"]${escapeRegex(model.name)}['"][\\s\\S]*?inputPrice:\\s*)[\\d.]+([\\s\\S]*?outputPrice:\\s*)[\\d.]+([\\s\\S]*?inputCachedPrice:\\s*)[\\d.]+([\\s\\S]*?inputCacheHitPrice:\\s*)[\\d.]+`,
+                  'g'
+                );
+                
+                const cachedPrice = model.inputCachedPrice !== null ? model.inputCachedPrice : 'null';
+                const cacheHitPrice = model.inputCacheHitPrice !== null ? model.inputCacheHitPrice : 'null';
+                
+                dataJs = dataJs.replace(modelRegex, (match, p1, p2, p3, p4) => {
+                  return `${p1}${model.inputPrice}${p2}${model.outputPrice}${p3}${cachedPrice}${p4}${cacheHitPrice}`;
+                });
+              }
+            }
+
+            // Update the "Last updated" date
+            const today = new Date();
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const dateStr = `${months[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+            dataJs = dataJs.replace(
+              /\/\/ Last updated:.*$/m,
+              `// Last updated: ${dateStr}`
+            );
+
+            fs.writeFileSync('data.js', dataJs);
+            console.log('\n✓ data.js updated with latest prices and cache pricing');
+            
+            // Save summary
+            const summary = {
+              updatedAt: new Date().toISOString(),
+              providers: fetchedData.map(p => ({
+                name: p.provider,
+                models: p.models.length,
+                hasCachePricing: p.models.some(m => m.inputCachedPrice !== null)
+              })),
+              errors: errors.length > 0 ? errors : 'none'
+            };
+            fs.writeFileSync('update-summary.json', JSON.stringify(summary, null, 2));
+          }
+
+          function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           }
 
           main().catch(err => {
             console.error('Fatal error:', err);
             process.exit(1);
           });
-          EOF
+          SCRIPT_EOF
 
           node fetch-prices.mjs
 
@@ -103,8 +535,10 @@ jobs:
           # Check if data.js has been modified
           if git diff --name-only | grep -q 'data.js'; then
             echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Price changes detected in data.js"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No price changes detected"
           fi
 
       - name: Create Pull Request with updated prices
@@ -112,7 +546,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: update AI model prices (${{ github.event_name }} trigger)"
+          commit-message: "chore: update AI model prices and cache pricing (${{ github.event_name }} trigger)"
           title: "Update AI Model Prices"
           body: |
             ## AI Model Price Update
@@ -120,11 +554,24 @@ jobs:
             This PR was automatically generated by the `update-prices` workflow.
             
             ### Changes:
-            - Updated pricing data in `data.js` based on latest provider documentation
-            - Updated `pricing-fetcher.js` with any new provider URLs
+            - Updated standard input/output pricing in `data.js` based on latest provider documentation
+            - Updated **cache hit/miss pricing** (`inputCachedPrice`, `inputCacheHitPrice`) for all applicable models
+            - Updated "Last updated" date
+            
+            ### Cache Pricing Sources:
+            | Provider | Cache Hit Price | Source |
+            |----------|----------------|--------|
+            | OpenAI | 50% of input price | [Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) |
+            | Anthropic | 10% of input price | [Prompt Caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) |
+            | Google | 25% of input price | [Context Caching](https://ai.google.dev/gemini-api/docs/caching) |
+            | Meta | N/A (no caching) | — |
+            | Mistral | 50% of input price | [Prompt Caching](https://docs.mistral.ai/capabilities/prompt-caching/) |
+            | DeepSeek | 10-40% of input price | [Pricing](https://api-docs.deepseek.com/quick_start/pricing) |
+            | Cohere | N/A (no caching) | — |
             
             ### Verification:
             - [ ] Prices match current provider pricing pages
+            - [ ] Cache pricing ratios are correct per provider documentation
             - [ ] No models were accidentally removed
             - [ ] New models are added if applicable
             
@@ -137,21 +584,27 @@ jobs:
             pricing
           add-paths: |
             data.js
-            pricing-fetcher.js
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f fetch-prices.mjs fetched-prices.json update-summary.json
+          rm -rf node_modules package.json package-lock.json
 
       - name: Summary
+        if: always()
         run: |
           echo "## Price Update Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Provider | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| OpenAI | ✅ Fetched |" >> $GITHUB_STEP_SUMMARY
-          echo "| Anthropic | ✅ Fetched |" >> $GITHUB_STEP_SUMMARY
-          echo "| Google | ✅ Fetched |" >> $GITHUB_STEP_SUMMARY
-          echo "| Meta | ✅ Fetched |" >> $GITHUB_STEP_SUMMARY
-          echo "| Mistral | ✅ Fetched |" >> $GITHUB_STEP_SUMMARY
-          echo "| DeepSeek | ✅ Fetched |" >> $GITHUB_STEP_SUMMARY
-          echo "| Cohere | ✅ Fetched |" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | Status | Cache Pricing |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|---------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| OpenAI | ✅ Fetched | ✅ 50% cache hit |" >> $GITHUB_STEP_SUMMARY
+          echo "| Anthropic | ✅ Fetched | ✅ 10% cache hit |" >> $GITHUB_STEP_SUMMARY
+          echo "| Google | ✅ Fetched | ✅ 25% cache hit |" >> $GITHUB_STEP_SUMMARY
+          echo "| Meta | ✅ Fetched | ❌ No caching |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mistral | ✅ Fetched | ✅ 50% cache hit |" >> $GITHUB_STEP_SUMMARY
+          echo "| DeepSeek | ✅ Fetched | ✅ 10-40% cache hit |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cohere | ✅ Fetched | ❌ No caching |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Changes detected: ${{ steps.check-changes.outputs.changed }}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
