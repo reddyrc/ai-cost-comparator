@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initModelModal();
     initBenchmarkComparison();
+    initProviderFilter();
     setLastUpdatedDate();
 });
 
@@ -566,6 +567,53 @@ function openModelModal(model) {
     // Show modal
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+}
+
+// ===== Provider Filter =====
+
+function initProviderFilter() {
+    const filterSelect = document.getElementById('provider-filter');
+    const filterCount = document.getElementById('filter-count');
+    
+    // Get unique providers sorted alphabetically
+    const providers = [...new Set(pricingData.map(m => m.provider))].sort();
+    
+    // Populate filter dropdown
+    providers.forEach(provider => {
+        const option = document.createElement('option');
+        option.value = provider;
+        option.textContent = provider;
+        filterSelect.appendChild(option);
+    });
+    
+    // Filter on change
+    filterSelect.addEventListener('change', () => {
+        const selected = filterSelect.value;
+        const rows = document.querySelectorAll('#pricing-body tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const providerCell = row.querySelector('td:first-child .provider-badge');
+            if (!providerCell) return;
+            
+            const provider = providerCell.textContent.trim();
+            const matches = selected === 'all' || provider === selected;
+            
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+        
+        // Update count
+        const total = pricingData.length;
+        if (selected === 'all') {
+            filterCount.textContent = `Showing all ${total} models`;
+        } else {
+            filterCount.textContent = `Showing ${visibleCount} of ${total} models`;
+        }
+        
+        // Uncheck select-all when filtering
+        document.getElementById('select-all-models').checked = false;
+    });
 }
 
 // ===== Model Checkboxes in Pricing Table =====

@@ -355,18 +355,51 @@ tbody tr {
     box-shadow: 0 2px 8px var(--accent-glow);
 }
 
-/* ===== Refresh Button ===== */
-.refresh-container {
+/* ===== Filter Bar ===== */
+.filter-bar {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding: 12px 16px;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 8px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
 }
 
+.filter-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.filter-select {
+    padding: 6px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition);
+    min-width: 160px;
+}
+
+.filter-select:hover,
+.filter-select:focus {
+    border-color: var(--accent);
+}
+
+.filter-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+/* ===== Refresh Button (legacy, kept for compatibility) ===== */
 .btn-refresh {
     display: inline-flex;
     align-items: center;
