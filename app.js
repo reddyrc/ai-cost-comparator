@@ -174,24 +174,29 @@ function sortTable(column, direction) {
     const rows = Array.from(tbody.querySelectorAll('tr'));
     
     // Find the column index by looking at header data-sort attributes
+    // The header has a checkbox th (non-sortable) before the sortable headers,
+    // so we need to add 1 to account for the checkbox column in the body rows
     const headers = document.querySelectorAll('#pricing-table thead th.sortable');
-    let colIndex = -1;
+    let sortableIndex = -1;
     headers.forEach((th, idx) => {
         if (th.dataset.sort === column) {
-            colIndex = idx;
+            sortableIndex = idx;
         }
     });
     
-    if (colIndex === -1) return;
+    if (sortableIndex === -1) return;
+    
+    // Account for the checkbox column (first column in body rows)
+    const colIndex = sortableIndex + 1;
     
     rows.sort((a, b) => {
         let valA, valB;
         
         // Check if it's a benchmark column (starts with 'benchmark-')
         if (column.startsWith('benchmark-')) {
-            // Benchmark columns contain percentage text like "88.5% 👑"
-            valA = parseFloat(a.cells[colIndex]?.textContent?.replace(/[^0-9.]/g, '') || '0');
-            valB = parseFloat(b.cells[colIndex]?.textContent?.replace(/[^0-9.]/g, '') || '0');
+            // Use data-sort-value attribute for accurate sorting
+            valA = parseFloat(a.cells[colIndex]?.dataset?.sortValue) || 0;
+            valB = parseFloat(b.cells[colIndex]?.dataset?.sortValue) || 0;
         } else {
             switch (column) {
                 case 'provider':
@@ -1283,7 +1288,7 @@ function applyColumnConfig(config) {
                         const best = Math.max(...pricingData.filter(m => m.benchmarks && m.benchmarks[col.benchmark]).map(m => m.benchmarks[col.benchmark]));
                         const isBest = score === best;
                         cellsHTML += `
-                            <td>
+                            <td data-sort-value="${score}">
                                 <span class="benchmark-table-score ${isBest ? 'benchmark-table-best' : ''}">
                                     ${score.toFixed(1)}%
                                     ${isBest ? ' 👑' : ''}
@@ -1294,7 +1299,7 @@ function applyColumnConfig(config) {
                             </td>
                         `;
                     } else {
-                        cellsHTML += `<td><span class="text-muted">—</span></td>`;
+                        cellsHTML += `<td data-sort-value="0"><span class="text-muted">—</span></td>`;
                     }
                     break;
             }
