@@ -124,6 +124,12 @@ function initTokenSizeToggle() {
             
             // Re-render with new scale
             initPricingTable();
+            
+            // Re-apply provider filter after table re-render
+            const searchInput = document.getElementById('model-search');
+            if (searchInput) {
+                searchInput.dispatchEvent(new Event('input'));
+            }
         });
     });
 }
@@ -1301,6 +1307,12 @@ function applyColumnConfig(config) {
     // Re-initialize checkboxes and sortable headers
     initModelCheckboxes();
     initSortableTable();
+    
+    // Re-apply provider filter after table re-render
+    const searchInput = document.getElementById('model-search');
+    if (searchInput) {
+        searchInput.dispatchEvent(new Event('input'));
+    }
     
     // Re-bind select-all
     const selectAll = document.getElementById('select-all-models');
