@@ -377,6 +377,112 @@ jobs:
             };
           }
 
+          async function scrapeKimi() {
+            console.log('  Fetching Kimi (Moonshot AI) pricing...');
+            const html = await fetchUrl('https://platform.kimi.com/docs/pricing/chat');
+            const dom = new JSDOM(html);
+            const doc = dom.window.document;
+            const text = doc.body.textContent;
+            
+            // Kimi pricing is in CNY per 1M tokens
+            // Exchange rate: ~7.2 CNY/USD
+            const CNY_TO_USD = 1 / 7.2;
+            
+            // Kimi K2.7 Code: ¥6.50 input / ¥27.00 output per 1M, cache hit ¥1.30
+            // Kimi K2.6: ¥6.50 input / ¥27.00 output per 1M, cache hit ¥1.10
+            // Kimi K2.5: ¥4.00 input / ¥21.00 output per 1M, cache hit ¥0.70
+            // Moonshot V1 8K: ¥2.00 input / ¥10.00 output per 1M
+            // Moonshot V1 32K: ¥5.00 input / ¥20.00 output per 1M
+            // Moonshot V1 128K: ¥10.00 input / ¥30.00 output per 1M
+            
+            const knownModels = [
+              { 
+                name: 'Kimi K2.7 Code', 
+                inputPriceCNY: 6.50, outputPriceCNY: 27.00, 
+                cacheHitCNY: 1.30, context: '256K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k27-code'
+              },
+              { 
+                name: 'Kimi K2.6', 
+                inputPriceCNY: 6.50, outputPriceCNY: 27.00, 
+                cacheHitCNY: 1.10, context: '256K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k26'
+              },
+              { 
+                name: 'Kimi K2.5', 
+                inputPriceCNY: 4.00, outputPriceCNY: 21.00, 
+                cacheHitCNY: 0.70, context: '256K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k25'
+              },
+              { 
+                name: 'Moonshot V1 8K', 
+                inputPriceCNY: 2.00, outputPriceCNY: 10.00, 
+                cacheHitCNY: null, context: '8K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+              },
+              { 
+                name: 'Moonshot V1 32K', 
+                inputPriceCNY: 5.00, outputPriceCNY: 20.00, 
+                cacheHitCNY: null, context: '32K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+              },
+              { 
+                name: 'Moonshot V1 128K', 
+                inputPriceCNY: 10.00, outputPriceCNY: 30.00, 
+                cacheHitCNY: null, context: '128K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+              },
+              { 
+                name: 'Moonshot V1 8K Vision', 
+                inputPriceCNY: 2.00, outputPriceCNY: 10.00, 
+                cacheHitCNY: null, context: '8K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+              },
+              { 
+                name: 'Moonshot V1 32K Vision', 
+                inputPriceCNY: 5.00, outputPriceCNY: 20.00, 
+                cacheHitCNY: null, context: '32K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+              },
+              { 
+                name: 'Moonshot V1 128K Vision', 
+                inputPriceCNY: 10.00, outputPriceCNY: 30.00, 
+                cacheHitCNY: null, context: '128K',
+                docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+              },
+            ];
+
+            // Try to extract actual prices from the page text
+            for (const model of knownModels) {
+              const modelIndex = text.indexOf(model.name);
+              if (modelIndex >= 0) {
+                const snippet = text.substring(modelIndex, modelIndex + 500);
+                // Look for ¥ prices
+                const cnyPrices = snippet.match(/¥(\d+\.?\d*)/g);
+                if (cnyPrices && cnyPrices.length >= 2) {
+                  const newInput = parseFloat(cnyPrices[0].replace('¥', ''));
+                  const newOutput = parseFloat(cnyPrices[1].replace('¥', ''));
+                  if (newInput && newInput > 0) model.inputPriceCNY = newInput;
+                  if (newOutput && newOutput > 0) model.outputPriceCNY = newOutput;
+                }
+              }
+            }
+
+            return {
+              provider: 'Kimi',
+              providerClass: 'kimi',
+              models: knownModels.map(m => ({
+                name: m.name,
+                inputPrice: parseFloat((m.inputPriceCNY * CNY_TO_USD / 1000).toFixed(8)),
+                outputPrice: parseFloat((m.outputPriceCNY * CNY_TO_USD / 1000).toFixed(8)),
+                inputCachedPrice: m.cacheHitCNY !== null ? parseFloat((m.cacheHitCNY * CNY_TO_USD / 1000).toFixed(8)) : null,
+                inputCacheHitPrice: m.cacheHitCNY !== null ? parseFloat((m.cacheHitCNY * CNY_TO_USD / 1000).toFixed(8)) : null,
+                contextWindow: m.context,
+                docsUrl: m.docsUrl
+              }))
+            };
+          }
+
           async function scrapeCohere() {
             console.log('  Fetching Cohere pricing...');
             const html = await fetchUrl('https://docs.cohere.com/docs/models');
@@ -447,6 +553,7 @@ jobs:
               scrapeMeta(),
               scrapeMistral(),
               scrapeDeepSeek(),
+              scrapeKimi(),
               scrapeCohere()
             ];
 
@@ -455,7 +562,7 @@ jobs:
             const errors = [];
 
             results.forEach((result, idx) => {
-              const names = ['OpenAI', 'Anthropic', 'Google', 'Meta', 'Mistral', 'DeepSeek', 'Cohere'];
+              const names = ['OpenAI', 'Anthropic', 'Google', 'Meta', 'Mistral', 'DeepSeek', 'Kimi', 'Cohere'];
               if (result.status === 'fulfilled') {
                 fetchedData.push(result.value);
                 console.log(`  ✓ ${names[idx]}: ${result.value.models.length} models`);
@@ -567,6 +674,7 @@ jobs:
             | Meta | N/A (no caching) | — |
             | Mistral | 50% of input price | [Prompt Caching](https://docs.mistral.ai/capabilities/prompt-caching/) |
             | DeepSeek | 10-40% of input price | [Pricing](https://api-docs.deepseek.com/quick_start/pricing) |
+            | Kimi | 20% of input price (auto cache) | [Pricing](https://platform.kimi.com/docs/pricing/chat) |
             | Cohere | N/A (no caching) | — |
             
             ### Verification:
@@ -604,6 +712,7 @@ jobs:
           echo "| Meta | ✅ Fetched | ❌ No caching |" >> $GITHUB_STEP_SUMMARY
           echo "| Mistral | ✅ Fetched | ✅ 50% cache hit |" >> $GITHUB_STEP_SUMMARY
           echo "| DeepSeek | ✅ Fetched | ✅ 10-40% cache hit |" >> $GITHUB_STEP_SUMMARY
+          echo "| Kimi | ✅ Fetched | ✅ 20% cache hit (auto) |" >> $GITHUB_STEP_SUMMARY
           echo "| Cohere | ✅ Fetched | ❌ No caching |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Changes detected: ${{ steps.check-changes.outputs.changed }}" >> $GITHUB_STEP_SUMMARY
