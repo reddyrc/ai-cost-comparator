@@ -9,14 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // initColumnConfig calls applyColumnConfig which renders the table,
     // initializes checkboxes, and sets up sortable headers
     initTokenSizeToggle();
-    initCalculator();
     initComparison();
     initNavigation();
     initModelModal();
     initBenchmarkComparison();
     initProviderFilter();
     initModelSearch();
-    initTokenEstimator();
     initChart();
     setLastUpdatedDate();
 });
@@ -251,70 +249,6 @@ function parseContext(text) {
         return parseFloat(text);
     }
     return parseFloat(text) || 0;
-}
-
-// ===== Calculator =====
-
-function initCalculator() {
-    const select = document.getElementById('calc-model');
-    const calcBtn = document.getElementById('calc-btn');
-    const resultsContent = document.querySelector('.results-content');
-    const placeholder = document.querySelector('.results-placeholder');
-
-    // Populate model dropdown
-    pricingData.forEach(model => {
-        const option = document.createElement('option');
-        option.value = model.model;
-        option.textContent = `${model.provider} - ${model.model}`;
-        select.appendChild(option);
-    });
-
-    calcBtn.addEventListener('click', () => {
-        const selectedModel = select.value;
-        if (!selectedModel) {
-            alert('Please select a model first.');
-            return;
-        }
-
-        const model = pricingData.find(m => m.model === selectedModel);
-        if (!model) return;
-
-        const inputTokens = parseInt(document.getElementById('calc-input-tokens').value) || 0;
-        const outputTokens = parseInt(document.getElementById('calc-output-tokens').value) || 0;
-        const requests = parseInt(document.getElementById('calc-requests').value) || 0;
-        const useCache = document.getElementById('calc-use-cache').checked;
-
-        if (inputTokens <= 0 || outputTokens <= 0 || requests <= 0) {
-            alert('Please enter positive numbers for all fields.');
-            return;
-        }
-
-        // Use cached input price if checkbox is checked and model has cache pricing
-        const inputPrice = (useCache && model.inputCachedPrice !== undefined) 
-            ? model.inputCachedPrice 
-            : model.inputPrice;
-
-        const costs = calculateCost(inputTokens, outputTokens, requests, inputPrice, model.outputPrice);
-
-        // Update results
-        document.getElementById('result-per-request').textContent = formatCurrency(costs.costPerRequest);
-        document.getElementById('result-input-monthly').textContent = formatCurrency(costs.monthlyInputCost);
-        document.getElementById('result-output-monthly').textContent = formatCurrency(costs.monthlyOutputCost);
-        document.getElementById('result-total-monthly').textContent = formatCurrency(costs.totalMonthlyCost);
-        document.getElementById('result-annual').textContent = formatCurrency(costs.annualCost);
-
-        // Show results, hide placeholder
-        placeholder.classList.add('hidden');
-        resultsContent.classList.remove('hidden');
-    });
-
-    // Allow Enter key to trigger calculation
-    const inputs = [document.getElementById('calc-input-tokens'), document.getElementById('calc-output-tokens'), document.getElementById('calc-requests')];
-    inputs.forEach(input => {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') calcBtn.click();
-        });
-    });
 }
 
 // ===== Comparison =====

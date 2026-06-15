@@ -162,10 +162,6 @@ section {
     background: var(--bg-secondary);
 }
 
-.calculator-section {
-    background: var(--bg-primary);
-}
-
 .comparison-section {
     background: var(--bg-secondary);
 }
@@ -678,21 +674,7 @@ tbody tr {
     color: white;
 }
 
-/* ===== Calculator ===== */
-.calculator-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    align-items: start;
-}
-
-.calculator-form {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 32px;
-}
-
+/* ===== Form Elements (shared) ===== */
 .form-group {
     margin-bottom: 20px;
 }
@@ -741,36 +723,6 @@ tbody tr {
     margin-top: 6px;
 }
 
-/* Checkbox group for calculator */
-.checkbox-group {
-    margin-bottom: 20px;
-}
-
-.checkbox-group .checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.checkbox-group .checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--accent);
-    cursor: pointer;
-}
-
-.checkbox-group .hint {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 6px;
-    margin-left: 28px;
-}
-
 /* Cached input price styling */
 .price-cached {
     color: var(--green) !important;
@@ -809,18 +761,7 @@ tbody tr {
     transform: translateY(0);
 }
 
-/* ===== Calculator Results ===== */
-.calculator-results {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 32px;
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
+/* ===== Placeholder / Results ===== */
 .results-placeholder {
     text-align: center;
     color: var(--text-muted);
@@ -841,71 +782,32 @@ tbody tr {
     display: none !important;
 }
 
-.results-content h3 {
-    font-size: 1.2rem;
-    margin-bottom: 24px;
-    color: var(--accent-light);
-}
-
-.result-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.result-row:last-child {
-    border-bottom: none;
-}
-
-.result-row.total {
-    border-top: 2px solid var(--accent);
-    border-bottom: none;
-    margin-top: 8px;
-    padding-top: 16px;
-}
-
-.result-label {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-.result-value {
-    font-weight: 700;
-    font-size: 1.1rem;
-    font-variant-numeric: tabular-nums;
-}
-
-.result-row.total .result-value {
-    color: var(--accent-light);
-    font-size: 1.3rem;
-}
-
 /* ===== Comparison Section ===== */
+.comparison-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.comparison-sidebar {
+    flex: 0 0 380px;
+    min-width: 0;
+}
+
+.comparison-main {
+    flex: 1;
+    min-width: 0;
+}
+
 .comparison-controls {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 24px;
-    margin-bottom: 24px;
-}
-
-.comparison-controls-row {
-    display: flex;
-    gap: 16px;
-    align-items: flex-end;
-}
-
-.comparison-controls-row + .comparison-controls-row {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
 }
 
 .comparison-model-select {
-    flex: 0 0 380px;
-    min-width: 0;
+    width: 100%;
 }
 
 .comparison-search-box {
@@ -1056,13 +958,12 @@ tbody tr {
 
 .comparison-inputs-row {
     display: flex;
+    flex-direction: column;
     gap: 12px;
-    align-items: flex-end;
 }
 
 .comparison-input-group {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
     margin-bottom: 0;
 }
 
@@ -1712,10 +1613,6 @@ footer {
         font-size: 1.6rem;
     }
 
-    .calculator-grid {
-        grid-template-columns: 1fr;
-    }
-
     .nav-links a {
         padding: 6px 14px;
         font-size: 0.8rem;
@@ -1772,12 +1669,16 @@ footer {
     }
 
     /* Comparison responsive */
-    .comparison-controls-row {
+    .comparison-layout {
         flex-direction: column;
-        gap: 12px;
     }
 
-    .comparison-model-select {
+    .comparison-sidebar {
+        flex: none;
+        width: 100%;
+    }
+
+    .comparison-main {
         width: 100%;
     }
 
@@ -1792,19 +1693,6 @@ footer {
     .preset-btn {
         flex: 1;
         text-align: center;
-    }
-
-    .comparison-inputs-row {
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .comparison-input-group {
-        width: 100%;
-    }
-
-    .comparison-btn {
-        width: 100%;
     }
 
     .comparison-card {
