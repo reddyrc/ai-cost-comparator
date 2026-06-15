@@ -1278,7 +1278,7 @@ function applyColumnConfig(config) {
                     break;
                 default:
                     // Benchmark columns
-                    if (col.benchmark && model.benchmarks && model.benchmarks[col.benchmark] !== undefined) {
+                    if (col.benchmark && model.benchmarks && model.benchmarks[col.benchmark] != null) {
                         const score = model.benchmarks[col.benchmark];
                         const best = Math.max(...pricingData.filter(m => m.benchmarks && m.benchmarks[col.benchmark]).map(m => m.benchmarks[col.benchmark]));
                         const isBest = score === best;

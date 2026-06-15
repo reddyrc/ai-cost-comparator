@@ -329,6 +329,7 @@ tbody tr {
 .provider-mistral { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
 .provider-deepseek { background: rgba(0, 148, 255, 0.15); color: #4fc3f7; }
 .provider-cohere { background: rgba(0, 184, 148, 0.15); color: #00b894; }
+.provider-kimi { background: rgba(255, 159, 67, 0.15); color: #ff9f43; }
 
 .model-name {
     font-weight: 600;

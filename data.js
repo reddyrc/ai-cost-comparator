@@ -731,8 +731,185 @@ const pricingData = [
             ifeval: 80.3
         },
         docsUrl: 'https://docs.cohere.com/docs/models'
+    },
+
+    // ===== Kimi (Moonshot AI) =====
+    // Pricing: https://platform.kimi.com/docs/pricing/chat
+    // Cache pricing: automatic context caching, cache hit = 20% of input price (¥1.30/¥6.50 for K2.7 Code)
+    // Prices in CNY per 1M tokens, converted to USD per 1K tokens (~7.2 CNY/USD)
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Kimi K2.7 Code',
+        inputPrice: 0.000903,
+        outputPrice: 0.00375,
+        inputCachedPrice: 0.000181,
+        inputCacheHitPrice: 0.000181,
+        contextWindow: '256K',
+        description: 'Kimi strongest coding model, supports text/image/video, thinking mode',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k27-code'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Kimi K2.6',
+        inputPrice: 0.000903,
+        outputPrice: 0.00375,
+        inputCachedPrice: 0.000153,
+        inputCacheHitPrice: 0.000153,
+        contextWindow: '256K',
+        description: 'Multimodal model, supports text/image/video, thinking & non-thinking modes',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k26'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Kimi K2.5',
+        inputPrice: 0.000556,
+        outputPrice: 0.002917,
+        inputCachedPrice: 0.000097,
+        inputCacheHitPrice: 0.000097,
+        contextWindow: '256K',
+        description: 'Multimodal model, supports text/image/video, thinking & non-thinking modes',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-k25'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Moonshot V1 8K',
+        inputPrice: 0.000276,
+        outputPrice: 0.001379,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
+        contextWindow: '8K',
+        description: 'Classic generation model, text only',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Moonshot V1 32K',
+        inputPrice: 0.000694,
+        outputPrice: 0.002778,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
+        contextWindow: '32K',
+        description: 'Classic generation model, text only',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Moonshot V1 128K',
+        inputPrice: 0.001389,
+        outputPrice: 0.004167,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
+        contextWindow: '128K',
+        description: 'Classic generation model, text only',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Moonshot V1 8K Vision',
+        inputPrice: 0.000276,
+        outputPrice: 0.001379,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
+        contextWindow: '8K',
+        description: 'Classic generation model with vision preview',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Moonshot V1 32K Vision',
+        inputPrice: 0.000694,
+        outputPrice: 0.002778,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
+        contextWindow: '32K',
+        description: 'Classic generation model with vision preview',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
+    },
+    {
+        provider: 'Kimi',
+        providerClass: 'kimi',
+        model: 'Moonshot V1 128K Vision',
+        inputPrice: 0.001389,
+        outputPrice: 0.004167,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
+        contextWindow: '128K',
+        description: 'Classic generation model with vision preview',
+        benchmarks: {
+            mmlu: null,
+            humaneval: null,
+            math: null,
+            gpqa: null,
+            ifeval: null
+        },
+        docsUrl: 'https://platform.kimi.com/docs/pricing/chat-v1'
     }
 ];
+
 
 // Sort by provider then by model name (to keep model families together)
 pricingData.sort((a, b) => {
