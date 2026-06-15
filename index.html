@@ -47,10 +47,22 @@
                 </div>
             </div>
             <div class="filter-bar">
-                <label for="provider-filter" class="filter-label">Provider:</label>
-                <select id="provider-filter" class="filter-select">
-                    <option value="all">All Providers</option>
-                </select>
+                <div class="provider-multiselect" id="provider-multiselect">
+                    <button class="provider-multiselect-btn" id="provider-filter-btn">
+                        <span id="provider-filter-label">All Providers</span>
+                        <span class="multiselect-arrow">▾</span>
+                    </button>
+                    <div class="provider-multiselect-dropdown hidden" id="provider-filter-dropdown">
+                        <label class="provider-multiselect-option">
+                            <input type="checkbox" value="all" checked id="provider-all">
+                            <span>All Providers</span>
+                        </label>
+                        <div class="provider-multiselect-divider"></div>
+                        <div id="provider-checkbox-list">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
                 <div class="search-wrapper">
                     <span class="search-icon">🔍</span>
                     <input type="text" id="model-search" class="search-input" placeholder="Search models..." autocomplete="off">

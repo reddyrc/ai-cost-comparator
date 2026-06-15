@@ -610,14 +610,13 @@ function openModelModal(model) {
 
 function initModelSearch() {
     const searchInput = document.getElementById('model-search');
-    const filterSelect = document.getElementById('provider-filter');
     const filterCount = document.getElementById('filter-count');
     
     if (!searchInput) return;
     
     function filterTable() {
         const searchTerm = searchInput.value.toLowerCase().trim();
-        const selectedProvider = filterSelect.value;
+        const selectedProviders = window.getSelectedProviders ? window.getSelectedProviders() : 'all';
         const rows = document.querySelectorAll('#pricing-body tr');
         let visibleCount = 0;
         
@@ -630,7 +629,16 @@ function initModelSearch() {
             const modelName = modelLink.dataset.model?.toLowerCase() || '';
             const modelDesc = row.querySelector('small')?.textContent?.toLowerCase() || '';
             
-            const matchesProvider = selectedProvider === 'all' || provider === selectedProvider;
+            // Check if provider matches selected providers
+            let matchesProvider;
+            if (selectedProviders === 'all') {
+                matchesProvider = true;
+            } else if (Array.isArray(selectedProviders)) {
+                matchesProvider = selectedProviders.includes(provider);
+            } else {
+                matchesProvider = provider === selectedProviders;
+            }
+            
             const matchesSearch = !searchTerm || 
                 modelName.includes(searchTerm) || 
                 provider.toLowerCase().includes(searchTerm) ||
@@ -643,7 +651,8 @@ function initModelSearch() {
         
         // Update count
         const total = pricingData.length;
-        if (selectedProvider === 'all' && !searchTerm) {
+        const isAllProviders = selectedProviders === 'all' || (Array.isArray(selectedProviders) && selectedProviders.length === [...new Set(pricingData.map(m => m.provider))].length);
+        if (isAllProviders && !searchTerm) {
             filterCount.textContent = `Showing all ${total} models`;
         } else {
             filterCount.textContent = `Showing ${visibleCount} of ${total} models`;
@@ -1313,33 +1322,100 @@ function applyColumnConfig(config) {
     }
 }
 
-// ===== Provider Filter =====
+// ===== Provider Multi-Select Filter =====
 
 function initProviderFilter() {
-    const filterSelect = document.getElementById('provider-filter');
+    const container = document.getElementById('provider-multiselect');
+    const btn = document.getElementById('provider-filter-btn');
+    const label = document.getElementById('provider-filter-label');
+    const dropdown = document.getElementById('provider-filter-dropdown');
+    const checkboxList = document.getElementById('provider-checkbox-list');
+    const allCheckbox = document.getElementById('provider-all');
     const filterCount = document.getElementById('filter-count');
     
     // Get unique providers sorted alphabetically
     const providers = [...new Set(pricingData.map(m => m.provider))].sort();
     
-    // Populate filter dropdown
+    // Populate provider checkboxes
     providers.forEach(provider => {
-        const option = document.createElement('option');
-        option.value = provider;
-        option.textContent = provider;
-        filterSelect.appendChild(option);
+        const item = document.createElement('label');
+        item.className = 'provider-multiselect-option';
+        item.innerHTML = `
+            <input type="checkbox" value="${provider}" checked>
+            <span>${provider}</span>
+        `;
+        checkboxList.appendChild(item);
     });
     
-    // Filter on change - delegate to search function which handles both search + provider
-    filterSelect.addEventListener('change', () => {
-        // Trigger the search input's filter function
+    // Update label text based on selected providers
+    function updateLabel() {
+        const checked = checkboxList.querySelectorAll('input[type="checkbox"]:checked');
+        const allChecked = checked.length === providers.length;
+        
+        if (allChecked) {
+            label.textContent = 'All Providers';
+        } else if (checked.length === 0) {
+            label.textContent = 'None selected';
+        } else if (checked.length <= 2) {
+            label.textContent = [...checked].map(cb => cb.value).join(', ');
+        } else {
+            label.textContent = `${checked.length} providers`;
+        }
+    }
+    
+    // Toggle dropdown
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        container.classList.toggle('open');
+        dropdown.classList.toggle('hidden');
+    });
+    
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+        if (!container.contains(e.target)) {
+            container.classList.remove('open');
+            dropdown.classList.add('hidden');
+        }
+    });
+    
+    // "All Providers" checkbox logic
+    allCheckbox.addEventListener('change', () => {
+        const providerCheckboxes = checkboxList.querySelectorAll('input[type="checkbox"]');
+        providerCheckboxes.forEach(cb => cb.checked = allCheckbox.checked);
+        updateLabel();
+        triggerFilter();
+    });
+    
+    // Individual provider checkbox logic
+    checkboxList.addEventListener('change', (e) => {
+        const providerCheckboxes = checkboxList.querySelectorAll('input[type="checkbox"]');
+        const checked = checkboxList.querySelectorAll('input[type="checkbox"]:checked');
+        
+        // Update "All Providers" checkbox state
+        allCheckbox.checked = checked.length === providers.length;
+        allCheckbox.indeterminate = checked.length > 0 && checked.length < providers.length;
+        
+        updateLabel();
+        triggerFilter();
+    });
+    
+    // Trigger the search/filter function
+    function triggerFilter() {
         const searchInput = document.getElementById('model-search');
         if (searchInput) {
             searchInput.dispatchEvent(new Event('input'));
         }
-        // Uncheck select-all when filtering
         document.getElementById('select-all-models').checked = false;
-    });
+    }
+    
+    // Get selected providers (returns array of provider names, or 'all')
+    window.getSelectedProviders = function() {
+        const allChecked = allCheckbox.checked;
+        if (allChecked) return 'all';
+        
+        const checked = checkboxList.querySelectorAll('input[type="checkbox"]:checked');
+        return [...checked].map(cb => cb.value);
+    };
 }
 
 // ===== Model Checkboxes in Pricing Table =====
