@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initModelModal();
     initBenchmarkComparison();
     setLastUpdatedDate();
-    createRefreshUI();
 });
 
 // ===== Utility Functions =====
