@@ -1511,6 +1511,22 @@ tbody tr {
     color: white;
 }
 
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.affiliate-btn {
+    transition: var(--transition);
+}
+
+.affiliate-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--accent-glow);
+}
+
 .modal-body {
     padding: 24px 32px 32px;
 }
