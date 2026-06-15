@@ -228,31 +228,35 @@
                 <h2>Model Comparison Chart</h2>
                 <p>Visual comparison of model performance vs cost</p>
             </div>
-            <div class="chart-controls">
-                <div class="chart-controls-row">
-                    <div class="form-group chart-model-select">
-                        <label>Select Models <span class="hint" id="chart-model-count">(choose 2+)</span></label>
-                        <div class="chart-search-box">
-                            <input type="text" id="chart-model-search" class="search-input" placeholder="Search models..." autocomplete="off">
+            <div class="chart-layout">
+                <div class="chart-sidebar">
+                    <div class="chart-controls">
+                        <div class="form-group chart-model-select">
+                            <label>Select Models <span class="hint" id="chart-model-count">(choose 2+)</span></label>
+                            <div class="chart-search-box">
+                                <input type="text" id="chart-model-search" class="search-input" placeholder="Search models..." autocomplete="off">
+                            </div>
+                            <div class="chart-checkbox-list" id="chart-checkbox-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
                         </div>
-                        <div class="chart-checkbox-list" id="chart-checkbox-list">
-                            <!-- Populated by JavaScript -->
-                        </div>
-                    </div>
-                    <div class="chart-type-group">
-                        <label>Chart Type:</label>
-                        <div class="toggle-group" id="chart-type-group">
-                            <button class="toggle-btn active" data-chart="radar">Radar</button>
-                            <button class="toggle-btn" data-chart="bar">Bar</button>
+                        <div class="chart-type-group">
+                            <label>Chart Type:</label>
+                            <div class="toggle-group" id="chart-type-group">
+                                <button class="toggle-btn active" data-chart="radar">Radar</button>
+                                <button class="toggle-btn" data-chart="bar">Bar</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="comparison-chart" width="800" height="500"></canvas>
-                <div class="chart-placeholder" id="chart-placeholder">
-                    <div class="placeholder-icon">📈</div>
-                    <p>Select at least 2 models above to see a visual comparison of benchmarks and costs.</p>
+                <div class="chart-main">
+                    <div class="chart-container">
+                        <canvas id="comparison-chart" width="800" height="500"></canvas>
+                        <div class="chart-placeholder" id="chart-placeholder">
+                            <div class="placeholder-icon">📈</div>
+                            <p>Select at least 2 models above to see a visual comparison of benchmarks and costs.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

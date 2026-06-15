@@ -1946,26 +1946,34 @@ footer {
     background: var(--bg-secondary);
 }
 
+.chart-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.chart-sidebar {
+    flex: 0 0 320px;
+    min-width: 0;
+}
+
+.chart-main {
+    flex: 1;
+    min-width: 0;
+}
+
 .chart-controls {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    margin-bottom: 24px;
     padding: 20px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
 }
 
-.chart-controls-row {
-    display: flex;
-    gap: 16px;
-    align-items: flex-end;
-}
-
 .chart-model-select {
-    flex: 0 0 380px;
-    min-width: 0;
+    width: 100%;
 }
 
 .chart-search-box {
@@ -2094,23 +2102,24 @@ footer {
 }
 
 /* ===== Responsive for chart ===== */
-@media (max-width: 768px) {
-    .chart-controls {
-        padding: 16px;
-    }
-
-    .chart-controls-row {
+@media (max-width: 1024px) {
+    .chart-layout {
         flex-direction: column;
-        gap: 12px;
     }
 
-    .chart-model-select {
+    .chart-sidebar {
+        flex: none;
         width: 100%;
     }
 
-    .chart-type-group {
-        flex-direction: row;
-        flex-wrap: wrap;
+    .chart-main {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-controls {
+        padding: 16px;
     }
 
     .chart-container {
