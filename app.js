@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initModelModal();
     initBenchmarkComparison();
     initProviderFilter();
+    initModelSearch();
+    initTokenEstimator();
+    initChart();
     setLastUpdatedDate();
 });
 
@@ -203,6 +206,10 @@ function sortTable(column, direction) {
                     valA = parsePrice(a.cells[colIndex]?.textContent || '');
                     valB = parsePrice(b.cells[colIndex]?.textContent || '');
                     break;
+                case 'input-cached':
+                    valA = parsePrice(a.cells[colIndex]?.textContent || '');
+                    valB = parsePrice(b.cells[colIndex]?.textContent || '');
+                    break;
                 case 'context':
                     valA = parseContext(a.cells[colIndex]?.textContent || '');
                     valB = parseContext(b.cells[colIndex]?.textContent || '');
@@ -275,13 +282,19 @@ function initCalculator() {
         const inputTokens = parseInt(document.getElementById('calc-input-tokens').value) || 0;
         const outputTokens = parseInt(document.getElementById('calc-output-tokens').value) || 0;
         const requests = parseInt(document.getElementById('calc-requests').value) || 0;
+        const useCache = document.getElementById('calc-use-cache').checked;
 
         if (inputTokens <= 0 || outputTokens <= 0 || requests <= 0) {
             alert('Please enter positive numbers for all fields.');
             return;
         }
 
-        const costs = calculateCost(inputTokens, outputTokens, requests, model.inputPrice, model.outputPrice);
+        // Use cached input price if checkbox is checked and model has cache pricing
+        const inputPrice = (useCache && model.inputCachedPrice !== undefined) 
+            ? model.inputCachedPrice 
+            : model.inputPrice;
+
+        const costs = calculateCost(inputTokens, outputTokens, requests, inputPrice, model.outputPrice);
 
         // Update results
         document.getElementById('result-per-request').textContent = formatCurrency(costs.costPerRequest);
@@ -307,49 +320,82 @@ function initCalculator() {
 // ===== Comparison =====
 
 function initComparison() {
-    const checkboxContainer = document.getElementById('compare-checkboxes');
-    const compareBtn = document.getElementById('compare-btn');
-    const comparisonWrapper = document.querySelector('.comparison-table-wrapper');
+    const checkboxList = document.getElementById('compare-checkbox-list');
+    const searchInput = document.getElementById('compare-model-search');
+    const cardsWrapper = document.getElementById('comparison-cards-wrapper');
     const placeholder = document.querySelector('#comparison-results .results-placeholder');
-    const comparisonBody = document.getElementById('comparison-body');
+    const modelCount = document.getElementById('compare-model-count');
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    const inputTokens = document.getElementById('compare-input-tokens');
+    const outputTokens = document.getElementById('compare-output-tokens');
+    const requests = document.getElementById('compare-requests');
 
-    // Populate checkboxes
+    // Preset configurations
+    const presets = {
+        light: { input: 1000, output: 200, requests: 1000 },
+        moderate: { input: 2000, output: 1000, requests: 10000 },
+        heavy: { input: 4000, output: 2000, requests: 100000 }
+    };
+
+    // Populate checkbox list
     pricingData.forEach(model => {
-        const label = document.createElement('label');
-        label.className = 'checkbox-label';
-        label.innerHTML = `
-            <input type="checkbox" value="${model.model}">
-            <span>${model.provider} - ${model.model}</span>
+        const item = document.createElement('label');
+        item.className = 'comparison-checkbox-item';
+        item.innerHTML = `
+            <input type="checkbox" class="compare-cb" value="${model.model}">
+            <span class="provider-badge provider-${model.providerClass}">${model.provider}</span>
+            <span class="model-name">${model.model}</span>
+            <span class="model-context">${model.contextWindow}</span>
         `;
-        checkboxContainer.appendChild(label);
+        checkboxList.appendChild(item);
     });
 
-    compareBtn.addEventListener('click', () => {
-        const checkedBoxes = document.querySelectorAll('#compare-checkboxes input[type="checkbox"]:checked');
+    // Run comparison and render results
+    function runComparison() {
+        const checked = checkboxList.querySelectorAll('.compare-cb:checked');
         
-        if (checkedBoxes.length < 2) {
-            alert('Please select at least 2 models to compare.');
+        if (checked.length < 2) {
+            placeholder.classList.remove('hidden');
+            cardsWrapper.classList.add('hidden');
             return;
         }
 
-        const inputTokens = parseInt(document.getElementById('compare-input-tokens').value) || 1000;
-        const outputTokens = parseInt(document.getElementById('compare-output-tokens').value) || 500;
-        const requests = parseInt(document.getElementById('compare-requests').value) || 10000;
+        const inTokens = parseInt(inputTokens.value) || 1000;
+        const cacheTokens = parseInt(document.getElementById('compare-cache-tokens').value) || 0;
+        const outTokens = parseInt(outputTokens.value) || 500;
+        const reqs = parseInt(requests.value) || 10000;
 
-        if (inputTokens <= 0 || outputTokens <= 0 || requests <= 0) {
-            alert('Please enter positive numbers for all fields.');
-            return;
-        }
+        if (inTokens <= 0 || outTokens <= 0 || reqs <= 0) return;
 
         // Calculate costs for each selected model
         const results = [];
-        checkedBoxes.forEach(checkbox => {
-            const model = pricingData.find(m => m.model === checkbox.value);
+        checked.forEach(cb => {
+            const model = pricingData.find(m => m.model === cb.value);
             if (model) {
-                const costs = calculateCost(inputTokens, outputTokens, requests, model.inputPrice, model.outputPrice);
+                // Split input tokens into cache hit and standard
+                const standardInTokens = Math.max(0, inTokens - cacheTokens);
+                const cacheHitTokens = Math.min(cacheTokens, inTokens);
+                
+                // Use cached price for cache hit tokens if model supports it
+                const cachePrice = model.inputCachedPrice !== undefined ? model.inputCachedPrice : model.inputPrice;
+                
+                // Calculate blended input cost
+                const standardInputCost = (standardInTokens / 1000) * model.inputPrice;
+                const cacheInputCost = (cacheHitTokens / 1000) * cachePrice;
+                const blendedInputPrice = (standardInputCost + cacheInputCost) / (inTokens / 1000);
+                
+                const costs = calculateCost(inTokens, outTokens, reqs, blendedInputPrice, model.outputPrice);
+                
+                // Calculate savings from cache
+                const noCacheCost = calculateCost(inTokens, outTokens, reqs, model.inputPrice, model.outputPrice);
+                const cacheSavings = noCacheCost.totalMonthlyCost - costs.totalMonthlyCost;
+                
                 results.push({
                     ...model,
-                    ...costs
+                    ...costs,
+                    cacheSavings,
+                    cacheHitTokens: cacheHitTokens,
+                    hasCachePricing: model.inputCachedPrice !== undefined
                 });
             }
         });
@@ -360,43 +406,111 @@ function initComparison() {
         // Sort by total monthly cost (cheapest first)
         results.sort((a, b) => a.totalMonthlyCost - b.totalMonthlyCost);
 
-        // Render comparison table
-        comparisonBody.innerHTML = '';
-        results.forEach(result => {
+        // Render comparison cards
+        cardsWrapper.innerHTML = '';
+        
+        results.forEach((result, idx) => {
             const isCheapest = result.totalMonthlyCost === cheapest;
             const percentageDiff = ((result.totalMonthlyCost - cheapest) / cheapest * 100).toFixed(1);
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>
-                    <span class="model-name">${result.model}</span>
-                    <br><span class="provider-badge provider-${result.providerClass}">${result.provider}</span>
-                </td>
-                <td>${result.provider}</td>
-                <td><strong>${formatCurrency(result.costPerRequest)}</strong></td>
-                <td><strong>${formatCurrency(result.totalMonthlyCost)}</strong></td>
-                <td><strong>${formatCurrency(result.annualCost)}</strong></td>
-                <td>
+            const rank = idx + 1;
+            const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+            
+            const card = document.createElement('div');
+            card.className = 'comparison-card';
+            card.innerHTML = `
+                <div class="comparison-card-rank ${rankClass}">${rank}</div>
+                <div class="comparison-card-info">
+                    <div class="comparison-card-model">${result.model}</div>
+                    <div class="comparison-card-provider">
+                        <span class="provider-badge provider-${result.providerClass}">${result.provider}</span>
+                        <span style="margin-left: 8px; color: var(--text-muted);">${result.contextWindow} context</span>
+                    </div>
+                </div>
+                <div class="comparison-card-costs">
+                    <div class="comparison-card-cost-item">
+                        <div class="comparison-card-cost-label">Per Request</div>
+                        <div class="comparison-card-cost-value">${formatCurrency(result.costPerRequest)}</div>
+                    </div>
+                    <div class="comparison-card-cost-item">
+                        <div class="comparison-card-cost-label">Monthly</div>
+                        <div class="comparison-card-cost-value ${isCheapest ? 'cheapest' : ''}">${formatCurrency(result.totalMonthlyCost)}</div>
+                    </div>
+                    <div class="comparison-card-cost-item">
+                        <div class="comparison-card-cost-label">Annual</div>
+                        <div class="comparison-card-cost-value">${formatCurrency(result.annualCost)}</div>
+                    </div>
+                </div>
+                <div class="comparison-card-badge ${isCheapest ? 'cheapest-badge' : 'more-expensive'}">
                     ${isCheapest 
-                        ? '<span class="cheapest-badge">✅ Cheapest</span>' 
-                        : `<span class="more-expensive">${percentageDiff}% more</span>`
+                        ? '✅ Cheapest' 
+                        : `+${percentageDiff}%`
                     }
-                </td>
+                </div>
+                ${result.cacheHitTokens > 0 ? `
+                    <div class="comparison-card-savings">
+                        ⚡ ${result.cacheHitTokens.toLocaleString()} cache hits/req — saved ${formatCurrency(result.cacheSavings)}/mo
+                    </div>
+                ` : ''}
             `;
-            comparisonBody.appendChild(tr);
+            cardsWrapper.appendChild(card);
         });
 
-        // Show comparison table, hide placeholder
+        // Show cards, hide placeholder
         placeholder.classList.add('hidden');
-        comparisonWrapper.classList.remove('hidden');
+        cardsWrapper.classList.remove('hidden');
+    }
+
+    // Update count and checked styling, then auto-run comparison
+    function updateAndRun() {
+        const checked = checkboxList.querySelectorAll('.compare-cb:checked');
+        const count = checked.length;
+        modelCount.textContent = count === 0 
+            ? '(choose 2+)' 
+            : `(${count} selected)`;
+        
+        // Update checked styling on items
+        checkboxList.querySelectorAll('.comparison-checkbox-item').forEach(item => {
+            const cb = item.querySelector('.compare-cb');
+            item.classList.toggle('checked', cb.checked);
+        });
+        
+        // Auto-run comparison
+        runComparison();
+    }
+
+    // Search/filter
+    searchInput.addEventListener('input', () => {
+        const term = searchInput.value.toLowerCase().trim();
+        checkboxList.querySelectorAll('.comparison-checkbox-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.classList.toggle('hidden', term && !text.includes(term));
+        });
     });
 
-    // Allow Enter key to trigger comparison
-    const inputs = [document.getElementById('compare-input-tokens'), document.getElementById('compare-output-tokens'), document.getElementById('compare-requests')];
-    inputs.forEach(input => {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') compareBtn.click();
+    // Delegate checkbox changes
+    checkboxList.addEventListener('change', updateAndRun);
+
+    // Preset buttons
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            presetBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const preset = presets[btn.dataset.preset];
+            if (preset) {
+                inputTokens.value = preset.input;
+                outputTokens.value = preset.output;
+                requests.value = preset.requests;
+                // Auto-run comparison after preset change
+                runComparison();
+            }
         });
+    });
+
+    // Auto-run on input changes
+    const cacheTokens = document.getElementById('compare-cache-tokens');
+    [inputTokens, outputTokens, requests, cacheTokens].forEach(input => {
+        if (input) input.addEventListener('input', runComparison);
     });
 }
 
@@ -469,14 +583,27 @@ function openModelModal(model) {
     // Set model name
     document.getElementById('modal-model-name').textContent = model.model;
     
-    // Set docs link
+    // Set docs links
     const docsLink = document.getElementById('modal-docs-link');
     docsLink.href = model.docsUrl || '#';
+    const sourcePricing = document.getElementById('modal-source-pricing');
+    sourcePricing.href = model.docsUrl || '#';
     
     // Set pricing
     document.getElementById('modal-input-price').textContent = formatCurrency(model.inputPrice);
     document.getElementById('modal-output-price').textContent = formatCurrency(model.outputPrice);
     document.getElementById('modal-context').textContent = model.contextWindow;
+    
+    // Set cache pricing if available
+    const modalCachePrice = document.getElementById('modal-cache-price');
+    if (modalCachePrice) {
+        if (model.inputCachedPrice !== undefined) {
+            modalCachePrice.textContent = formatCurrency(model.inputCachedPrice);
+            modalCachePrice.parentElement.style.display = '';
+        } else {
+            modalCachePrice.parentElement.style.display = 'none';
+        }
+    }
     
     // Set benchmarks
     const benchmarkContainer = document.getElementById('modal-benchmarks');
@@ -545,6 +672,457 @@ function openModelModal(model) {
     document.body.style.overflow = 'hidden';
 }
 
+// ===== Model Search =====
+
+function initModelSearch() {
+    const searchInput = document.getElementById('model-search');
+    const filterSelect = document.getElementById('provider-filter');
+    const filterCount = document.getElementById('filter-count');
+    
+    if (!searchInput) return;
+    
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const selectedProvider = filterSelect.value;
+        const rows = document.querySelectorAll('#pricing-body tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const providerCell = row.querySelector('.provider-badge');
+            const modelLink = row.querySelector('.model-link');
+            if (!providerCell || !modelLink) return;
+            
+            const provider = providerCell.textContent.trim();
+            const modelName = modelLink.dataset.model?.toLowerCase() || '';
+            const modelDesc = row.querySelector('small')?.textContent?.toLowerCase() || '';
+            
+            const matchesProvider = selectedProvider === 'all' || provider === selectedProvider;
+            const matchesSearch = !searchTerm || 
+                modelName.includes(searchTerm) || 
+                provider.toLowerCase().includes(searchTerm) ||
+                modelDesc.includes(searchTerm);
+            
+            const matches = matchesProvider && matchesSearch;
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+        
+        // Update count
+        const total = pricingData.length;
+        if (selectedProvider === 'all' && !searchTerm) {
+            filterCount.textContent = `Showing all ${total} models`;
+        } else {
+            filterCount.textContent = `Showing ${visibleCount} of ${total} models`;
+        }
+    }
+    
+    // Debounced search
+    let debounceTimer;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(filterTable, 200);
+    });
+}
+
+// ===== Token Estimator =====
+
+function initTokenEstimator() {
+    const textarea = document.getElementById('token-estimator-input');
+    const countDisplay = document.getElementById('estimated-token-count');
+    const useBtn = document.getElementById('use-estimated-tokens');
+    const inputTokensField = document.getElementById('calc-input-tokens');
+    
+    if (!textarea || !countDisplay) return;
+    
+    // Estimate tokens: ~4 characters per token for English text
+    // More accurate: count words and multiply by ~1.3
+    function estimateTokens(text) {
+        if (!text || !text.trim()) return 0;
+        
+        // Remove extra whitespace
+        const cleaned = text.trim();
+        
+        // Method 1: Character-based (4 chars ≈ 1 token)
+        const charEstimate = Math.ceil(cleaned.length / 4);
+        
+        // Method 2: Word-based (1 token ≈ 0.75 words)
+        const words = cleaned.split(/\s+/).length;
+        const wordEstimate = Math.ceil(words * 1.3);
+        
+        // Method 3: For code-heavy text, use character-based
+        const codeIndicators = (cleaned.match(/[{}\[\]();=<>+\-*/]/g) || []).length;
+        const isCodeHeavy = codeIndicators > cleaned.length * 0.05;
+        
+        // Use weighted average
+        let estimate;
+        if (isCodeHeavy) {
+            // Code: characters are more reliable
+            estimate = Math.ceil(cleaned.length / 3.5);
+        } else {
+            // Natural language: average both methods
+            estimate = Math.ceil((charEstimate + wordEstimate) / 2);
+        }
+        
+        return Math.max(1, estimate);
+    }
+    
+    textarea.addEventListener('input', () => {
+        const text = textarea.value;
+        const estimated = estimateTokens(text);
+        countDisplay.textContent = estimated.toLocaleString();
+    });
+    
+    // Use estimated tokens as input
+    useBtn.addEventListener('click', () => {
+        const estimated = parseInt(countDisplay.textContent.replace(/,/g, ''));
+        if (estimated > 0) {
+            inputTokensField.value = estimated;
+            // Visual feedback
+            useBtn.textContent = '✅ Applied!';
+            setTimeout(() => {
+                useBtn.textContent = 'Use as Input';
+            }, 1500);
+        }
+    });
+}
+
+// ===== Chart (Radar & Bar) =====
+
+// Chart colors for up to 10 models
+const CHART_COLORS = [
+    '#6c5ce7', '#00cec9', '#fdcb6e', '#ff6b6b', '#a29bfe',
+    '#00b894', '#e17055', '#0984e3', '#fd79a8', '#636e72'
+];
+
+function initChart() {
+    const checkboxList = document.getElementById('chart-checkbox-list');
+    const searchInput = document.getElementById('chart-model-search');
+    const canvas = document.getElementById('comparison-chart');
+    const placeholder = document.getElementById('chart-placeholder');
+    const chartTypeGroup = document.getElementById('chart-type-group');
+    const modelCount = document.getElementById('chart-model-count');
+    
+    if (!checkboxList || !canvas) return;
+    
+    let selectedModels = [];
+    let chartType = 'radar'; // 'radar' or 'bar'
+    
+    // Populate checkbox list (same style as comparison section)
+    pricingData.forEach(model => {
+        const item = document.createElement('label');
+        item.className = 'comparison-checkbox-item';
+        item.innerHTML = `
+            <input type="checkbox" class="chart-model-cb" value="${model.model}">
+            <span class="provider-badge provider-${model.providerClass}">${model.provider}</span>
+            <span class="model-name">${model.model}</span>
+            <span class="model-context">${model.contextWindow}</span>
+        `;
+        checkboxList.appendChild(item);
+    });
+    
+    // Search/filter
+    searchInput.addEventListener('input', () => {
+        const term = searchInput.value.toLowerCase().trim();
+        checkboxList.querySelectorAll('.comparison-checkbox-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.classList.toggle('hidden', term && !text.includes(term));
+        });
+    });
+    
+    // Chart type toggle
+    chartTypeGroup.addEventListener('click', (e) => {
+        const btn = e.target.closest('.toggle-btn');
+        if (!btn) return;
+        
+        chartTypeGroup.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        chartType = btn.dataset.chart;
+        
+        if (selectedModels.length >= 2) {
+            drawChart(selectedModels, chartType);
+        }
+    });
+    
+    // Update count and checked styling
+    function updateChart() {
+        const checked = checkboxList.querySelectorAll('.chart-model-cb:checked');
+        const count = checked.length;
+        modelCount.textContent = count === 0 
+            ? '(choose 2+)' 
+            : `(${count} selected)`;
+        
+        // Update checked styling on items
+        checkboxList.querySelectorAll('.comparison-checkbox-item').forEach(item => {
+            const cb = item.querySelector('.chart-model-cb');
+            item.classList.toggle('checked', cb.checked);
+        });
+        
+        // Build selected models
+        selectedModels = [];
+        checked.forEach(cb => {
+            const model = pricingData.find(m => m.model === cb.value);
+            if (model) selectedModels.push(model);
+        });
+        
+        // Draw or show placeholder
+        if (selectedModels.length >= 2) {
+            placeholder.classList.add('hidden');
+            canvas.classList.remove('hidden');
+            drawChart(selectedModels, chartType);
+        } else {
+            placeholder.classList.remove('hidden');
+            canvas.classList.add('hidden');
+        }
+    }
+    
+    // Delegate checkbox changes
+    checkboxList.addEventListener('change', updateChart);
+}
+
+function drawChart(models, type) {
+    const canvas = document.getElementById('comparison-chart');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    const container = canvas.parentElement;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = container.getBoundingClientRect();
+    const width = Math.min(rect.width - 40, 800);
+    const height = Math.min(500, width * 0.65);
+    
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.scale(dpr, dpr);
+    
+    // Clear
+    ctx.clearRect(0, 0, width, height);
+    
+    if (type === 'radar') {
+        drawRadarChart(ctx, models, width, height);
+    } else {
+        drawBarChart(ctx, models, width, height);
+    }
+}
+
+function drawRadarChart(ctx, models, width, height) {
+    const benchmarkKeys = ['mmlu', 'humaneval', 'math', 'gpqa', 'ifeval'];
+    const labels = benchmarkKeys.map(k => BENCHMARK_LABELS[k]);
+    const numAxes = labels.length;
+    
+    const padding = { top: 40, bottom: 40, left: 40, right: 40 };
+    const centerX = width / 2;
+    const centerY = height / 2 + 10;
+    const radius = Math.min(centerX - padding.left, centerY - padding.top) - 20;
+    
+    // Draw grid
+    const levels = 5;
+    for (let level = 1; level <= levels; level++) {
+        const r = (radius / levels) * level;
+        ctx.beginPath();
+        for (let i = 0; i <= numAxes; i++) {
+            const angle = (Math.PI * 2 * i) / numAxes - Math.PI / 2;
+            const x = centerX + r * Math.cos(angle);
+            const y = centerY + r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+    
+    // Draw axes
+    for (let i = 0; i < numAxes; i++) {
+        const angle = (Math.PI * 2 * i) / numAxes - Math.PI / 2;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Label
+        const labelR = radius + 18;
+        const lx = centerX + labelR * Math.cos(angle);
+        const ly = centerY + labelR * Math.sin(angle);
+        ctx.fillStyle = '#9898b8';
+        ctx.font = '11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labels[i], lx, ly);
+    }
+    
+    // Draw data
+    const maxScore = 100;
+    models.forEach((model, idx) => {
+        const color = CHART_COLORS[idx % CHART_COLORS.length];
+        const scores = benchmarkKeys.map(k => model.benchmarks?.[k] || 0);
+        
+        ctx.beginPath();
+        scores.forEach((score, i) => {
+            const value = score / maxScore;
+            const angle = (Math.PI * 2 * i) / numAxes - Math.PI / 2;
+            const x = centerX + radius * value * Math.cos(angle);
+            const y = centerY + radius * value * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = color + '30';
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw points
+        scores.forEach((score, i) => {
+            const value = score / maxScore;
+            const angle = (Math.PI * 2 * i) / numAxes - Math.PI / 2;
+            const x = centerX + radius * value * Math.cos(angle);
+            const y = centerY + radius * value * Math.sin(angle);
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        });
+    });
+    
+    // Draw legend
+    drawLegend(ctx, models, width, height);
+}
+
+function drawBarChart(ctx, models, width, height) {
+    const benchmarkKeys = ['mmlu', 'humaneval', 'math', 'gpqa', 'ifeval'];
+    const labels = benchmarkKeys.map(k => BENCHMARK_LABELS[k]);
+    
+    const padding = { top: 30, bottom: 50, left: 50, right: 30 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+    
+    const groupWidth = chartWidth / labels.length;
+    const barWidth = Math.min((groupWidth * 0.7) / models.length, 20);
+    const groupPadding = groupWidth * 0.15;
+    
+    // Draw axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    
+    // Y axis
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, padding.top + chartHeight);
+    ctx.stroke();
+    
+    // X axis
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top + chartHeight);
+    ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+    ctx.stroke();
+    
+    // Y axis labels and grid lines
+    const ySteps = 5;
+    for (let i = 0; i <= ySteps; i++) {
+        const y = padding.top + chartHeight - (chartHeight / ySteps) * i;
+        const value = (100 / ySteps) * i;
+        
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(padding.left + chartWidth, y);
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.stroke();
+        
+        ctx.fillStyle = '#6868a0';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(value + '%', padding.left - 8, y);
+    }
+    
+    // Draw bars
+    models.forEach((model, modelIdx) => {
+        const color = CHART_COLORS[modelIdx % CHART_COLORS.length];
+        
+        labels.forEach((label, labelIdx) => {
+            const score = model.benchmarks?.[benchmarkKeys[labelIdx]] || 0;
+            const x = padding.left + groupPadding + labelIdx * groupWidth + modelIdx * barWidth;
+            const barHeight = (score / 100) * chartHeight;
+            const y = padding.top + chartHeight - barHeight;
+            
+            // Bar with rounded top
+            const radius = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, padding.top + chartHeight);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.lineTo(x + barWidth - radius, y);
+            ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
+            ctx.lineTo(x + barWidth, padding.top + chartHeight);
+            ctx.closePath();
+            
+            ctx.fillStyle = color + '80';
+            ctx.fill();
+            
+            // Score text on top of bar
+            if (score > 0) {
+                ctx.fillStyle = color;
+                ctx.font = '9px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(score.toFixed(1) + '%', x + barWidth / 2, y - 4);
+            }
+        });
+    });
+    
+    // X axis labels
+    labels.forEach((label, i) => {
+        const x = padding.left + groupPadding + i * groupWidth + (groupWidth * 0.7) / 2;
+        ctx.fillStyle = '#9898b8';
+        ctx.font = '11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(label, x, padding.top + chartHeight + 8);
+    });
+    
+    // Draw legend
+    drawLegend(ctx, models, width, height);
+}
+
+function drawLegend(ctx, models, width, height) {
+    const legendY = height - 8;
+    let xOffset = width / 2 - (models.length * 100) / 2;
+    
+    models.forEach((model, idx) => {
+        const color = CHART_COLORS[idx % CHART_COLORS.length];
+        
+        // Color box
+        ctx.fillStyle = color;
+        ctx.fillRect(xOffset, legendY - 6, 10, 10);
+        
+        // Label
+        ctx.fillStyle = '#9898b8';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        
+        // Truncate long names
+        let name = model.model;
+        if (name.length > 20) name = name.substring(0, 18) + '…';
+        
+        ctx.fillText(name, xOffset + 16, legendY);
+        xOffset += Math.min(name.length * 7 + 30, 160);
+    });
+}
+
 // ===== Column Configuration =====
 
 // Default column definitions
@@ -553,6 +1131,7 @@ const COLUMN_DEFS = [
     { id: 'model', label: 'Model', desc: 'Model name and description', alwaysOn: true, default: true },
     { id: 'input', label: 'Input Price', desc: 'Cost per token for input/prompt', alwaysOn: false, default: true },
     { id: 'output', label: 'Output Price', desc: 'Cost per token for output/completion', alwaysOn: false, default: true },
+    { id: 'input-cached', label: 'Cached Input', desc: 'Cost per token for cached input (cache hit)', alwaysOn: false, default: false },
     { id: 'context', label: 'Context Window', desc: 'Maximum context length', alwaysOn: false, default: true },
     { id: 'benchmark-mmlu', label: 'MMLU', desc: 'Knowledge benchmark score', alwaysOn: false, default: false, benchmark: 'mmlu' },
     { id: 'benchmark-humaneval', label: 'HumanEval', desc: 'Code generation score', alwaysOn: false, default: false, benchmark: 'humaneval' },
@@ -669,7 +1248,8 @@ function applyColumnConfig(config) {
     COLUMN_DEFS.forEach(col => {
         const show = config[col.id] !== undefined ? config[col.id] : col.default;
         if (!show) return;
-        headerHTML += `<th data-sort="${col.id}" class="sortable">${col.label} <span class="sort-icon"></span></th>`;
+        const extraClass = col.id === 'model' ? ' sticky-col' : '';
+        headerHTML += `<th data-sort="${col.id}" class="sortable${extraClass}">${col.label} <span class="sort-icon"></span></th>`;
     });
     
     thead.innerHTML = headerHTML;
@@ -700,7 +1280,7 @@ function applyColumnConfig(config) {
                     break;
                 case 'model':
                     cellsHTML += `
-                        <td>
+                        <td class="sticky-col">
                             <a href="#" class="model-link" data-model="${model.model}">
                                 <span class="model-name">${model.model}</span>
                                 <span class="model-link-icon">📊</span>
@@ -728,6 +1308,21 @@ function applyColumnConfig(config) {
                             </span>
                         </td>
                     `;
+                    break;
+                case 'input-cached':
+                    if (model.inputCachedPrice !== undefined) {
+                        const scaledCached = model.inputCachedPrice * multiplier;
+                        cellsHTML += `
+                            <td>
+                                <span class="price-cell price-cached">
+                                    ${formatCurrencyShort(scaledCached)}
+                                </span>
+                                <br><small style="color: var(--text-muted); font-size: 0.75rem;">cache hit</small>
+                            </td>
+                        `;
+                    } else {
+                        cellsHTML += `<td><span class="text-muted">—</span></td>`;
+                    }
                     break;
                 case 'context':
                     cellsHTML += `<td><span class="context-cell">${model.contextWindow}</span></td>`;
@@ -801,31 +1396,13 @@ function initProviderFilter() {
         filterSelect.appendChild(option);
     });
     
-    // Filter on change
+    // Filter on change - delegate to search function which handles both search + provider
     filterSelect.addEventListener('change', () => {
-        const selected = filterSelect.value;
-        const rows = document.querySelectorAll('#pricing-body tr');
-        let visibleCount = 0;
-        
-        rows.forEach(row => {
-            const providerCell = row.querySelector('.provider-badge');
-            if (!providerCell) return;
-            
-            const provider = providerCell.textContent.trim();
-            const matches = selected === 'all' || provider === selected;
-            
-            row.style.display = matches ? '' : 'none';
-            if (matches) visibleCount++;
-        });
-        
-        // Update count
-        const total = pricingData.length;
-        if (selected === 'all') {
-            filterCount.textContent = `Showing all ${total} models`;
-        } else {
-            filterCount.textContent = `Showing ${visibleCount} of ${total} models`;
+        // Trigger the search input's filter function
+        const searchInput = document.getElementById('model-search');
+        if (searchInput) {
+            searchInput.dispatchEvent(new Event('input'));
         }
-        
         // Uncheck select-all when filtering
         document.getElementById('select-all-models').checked = false;
     });

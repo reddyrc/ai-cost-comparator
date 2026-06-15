@@ -20,6 +20,7 @@
                     <a href="#pricing" class="active">Pricing</a>
                     <a href="#calculator">Calculator</a>
                     <a href="#comparison">Compare</a>
+                    <a href="#chart">Charts</a>
                 </div>
             </nav>
         </div>
@@ -47,10 +48,14 @@
                 </div>
             </div>
             <div class="filter-bar">
-                <label for="provider-filter" class="filter-label">Filter by provider:</label>
+                <label for="provider-filter" class="filter-label">Provider:</label>
                 <select id="provider-filter" class="filter-select">
                     <option value="all">All Providers</option>
                 </select>
+                <div class="search-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="model-search" class="search-input" placeholder="Search models..." autocomplete="off">
+                </div>
                 <span class="filter-count" id="filter-count">Showing all models</span>
                 <button id="columns-btn" class="btn-columns" title="Customize columns">⚙️ Columns</button>
             </div>
@@ -63,6 +68,7 @@
                             <th data-sort="model" class="sortable">Model <span class="sort-icon"></span></th>
                             <th data-sort="input" class="sortable">Input <span class="sort-icon"></span></th>
                             <th data-sort="output" class="sortable">Output <span class="sort-icon"></span></th>
+                            <th data-sort="input-cached" class="sortable">Cached Input <span class="sort-icon"></span></th>
                             <th data-sort="context" class="sortable">Context Window <span class="sort-icon"></span></th>
                         </tr>
                     </thead>
@@ -102,10 +108,26 @@
                         <input type="number" id="calc-output-tokens" min="0" value="500" placeholder="e.g., 500">
                         <span class="hint">Average number of tokens in the response</span>
                     </div>
+                    <div class="form-group token-estimator-group">
+                        <label>Token Estimator</label>
+                        <textarea id="token-estimator-input" class="token-estimator-input" placeholder="Paste your prompt text here to estimate token count..." rows="4"></textarea>
+                        <div class="token-estimator-result" id="token-estimator-result">
+                            <span>Estimated tokens: <strong id="estimated-token-count">0</strong></span>
+                            <button id="use-estimated-tokens" class="btn-ghost btn-sm">Use as Input</button>
+                        </div>
+                        <span class="hint">Rough estimate: ~4 characters ≈ 1 token. For accurate counts, use the provider's tokenizer.</span>
+                    </div>
                     <div class="form-group">
                         <label for="calc-requests">Requests (per month)</label>
                         <input type="number" id="calc-requests" min="0" value="10000" placeholder="e.g., 10000">
                         <span class="hint">Number of API calls per month</span>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="calc-use-cache">
+                            <span>Use cached input pricing (if available)</span>
+                        </label>
+                        <span class="hint">Cache hits are typically 50% cheaper than standard input</span>
                     </div>
                     <button id="calc-btn" class="btn-primary">Calculate Cost</button>
                 </div>
@@ -146,49 +168,91 @@
         <div class="container">
             <div class="section-header">
                 <h2>Side-by-Side Comparison</h2>
-                <p>Compare multiple models at once to find the best value</p>
+                <p>Compare costs across multiple models at once</p>
             </div>
             <div class="comparison-controls">
-                <div class="form-group">
-                    <label>Select Models to Compare</label>
-                    <div class="checkbox-grid" id="compare-checkboxes">
-                        <!-- Populated by JavaScript -->
+                <div class="comparison-controls-row">
+                    <div class="form-group comparison-model-select">
+                        <label>Select Models <span class="hint" id="compare-model-count">(choose 2+)</span></label>
+                        <div class="comparison-search-box">
+                            <input type="text" id="compare-model-search" class="search-input" placeholder="Search models..." autocomplete="off">
+                        </div>
+                        <div class="comparison-checkbox-list" id="compare-checkbox-list">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="comparison-presets">
+                        <label>Quick Usage</label>
+                        <div class="preset-buttons">
+                            <button class="preset-btn active" data-preset="light">Light</button>
+                            <button class="preset-btn" data-preset="moderate">Moderate</button>
+                            <button class="preset-btn" data-preset="heavy">Heavy</button>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="compare-input-tokens">Input Tokens</label>
-                    <input type="number" id="compare-input-tokens" min="0" value="1000">
+                <div class="comparison-controls-row comparison-inputs-row">
+                    <div class="form-group comparison-input-group">
+                        <label for="compare-input-tokens">Input Tokens</label>
+                        <input type="number" id="compare-input-tokens" min="0" value="1000">
+                    </div>
+                    <div class="form-group comparison-input-group">
+                        <label for="compare-cache-tokens">Cache Hit <span class="hint">(≤ input)</span></label>
+                        <input type="number" id="compare-cache-tokens" min="0" value="0" placeholder="0" step="1">
+                    </div>
+                    <div class="form-group comparison-input-group">
+                        <label for="compare-output-tokens">Output Tokens</label>
+                        <input type="number" id="compare-output-tokens" min="0" value="500">
+                    </div>
+                    <div class="form-group comparison-input-group">
+                        <label for="compare-requests">Monthly Requests</label>
+                        <input type="number" id="compare-requests" min="0" value="10000">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="compare-output-tokens">Output Tokens</label>
-                    <input type="number" id="compare-output-tokens" min="0" value="500">
-                </div>
-                <div class="form-group">
-                    <label for="compare-requests">Monthly Requests</label>
-                    <input type="number" id="compare-requests" min="0" value="10000">
-                </div>
-                <button id="compare-btn" class="btn-primary">Compare</button>
             </div>
             <div class="comparison-results" id="comparison-results">
                 <div class="results-placeholder">
                     <div class="placeholder-icon">📊</div>
-                    <p>Select at least two models and click "Compare" to see a side-by-side cost breakdown.</p>
+                    <p>Select 2+ models above to see a side-by-side cost breakdown.</p>
                 </div>
-                <div class="comparison-table-wrapper hidden">
-                    <table id="comparison-table">
-                        <thead>
-                            <tr>
-                                <th>Model</th>
-                                <th>Provider</th>
-                                <th>Cost / Request</th>
-                                <th>Monthly Cost</th>
-                                <th>Annual Cost</th>
-                                <th>vs Cheapest</th>
-                            </tr>
-                        </thead>
-                        <tbody id="comparison-body">
-                        </tbody>
-                    </table>
+                <div class="comparison-cards-wrapper hidden" id="comparison-cards-wrapper">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Model Comparison Chart ===== -->
+    <section id="chart" class="chart-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Model Comparison Chart</h2>
+                <p>Visual comparison of model performance vs cost</p>
+            </div>
+            <div class="chart-controls">
+                <div class="chart-controls-row">
+                    <div class="form-group chart-model-select">
+                        <label>Select Models <span class="hint" id="chart-model-count">(choose 2+)</span></label>
+                        <div class="chart-search-box">
+                            <input type="text" id="chart-model-search" class="search-input" placeholder="Search models..." autocomplete="off">
+                        </div>
+                        <div class="chart-checkbox-list" id="chart-checkbox-list">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="chart-type-group">
+                        <label>Chart Type:</label>
+                        <div class="toggle-group" id="chart-type-group">
+                            <button class="toggle-btn active" data-chart="radar">Radar</button>
+                            <button class="toggle-btn" data-chart="bar">Bar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="comparison-chart" width="800" height="500"></canvas>
+                <div class="chart-placeholder" id="chart-placeholder">
+                    <div class="placeholder-icon">📈</div>
+                    <p>Select at least 2 models above to see a visual comparison of benchmarks and costs.</p>
                 </div>
             </div>
         </div>
@@ -250,6 +314,10 @@
                             <span class="pricing-label">Context Window</span>
                             <span class="pricing-value" id="modal-context"></span>
                         </div>
+                        <div class="modal-pricing-card">
+                            <span class="pricing-label">Cached Input (per 1K)</span>
+                            <span class="pricing-value" id="modal-cache-price"></span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-section">
@@ -264,6 +332,23 @@
                     <p class="modal-subtitle">Estimated costs based on typical usage patterns</p>
                     <div class="modal-estimates" id="modal-estimates">
                         <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <h3>Data Sources</h3>
+                    <p class="modal-subtitle">Where this model's data comes from</p>
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-size: 0.85rem; color: var(--text-secondary);">
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: var(--text-primary);">Pricing:</strong> 
+                            <a id="modal-source-pricing" href="#" target="_blank" style="color: var(--accent-light);">Official pricing page →</a>
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <strong style="color: var(--text-primary);">Benchmarks:</strong> 
+                            <span>Published in official model technical reports and documentation</span>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); padding-top: 8px; border-top: 1px solid var(--border);">
+                            ⚠️ Benchmark scores are sourced from official provider publications. Always verify current pricing with the provider.
+                        </div>
                     </div>
                 </div>
             </div>

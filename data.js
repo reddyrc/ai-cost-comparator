@@ -1,15 +1,20 @@
 // AI Model Pricing Data
 // Prices are per 1K tokens unless otherwise noted
+// Cache pricing sourced from official provider documentation
 // Last updated: June 2026
 
 const pricingData = [
     // ===== OpenAI =====
+    // Cache pricing: https://platform.openai.com/docs/guides/prompt-caching
+    // Cache hit = 50% of input price, Cache write = 100% of input price
     {
         provider: 'OpenAI',
         providerClass: 'openai',
         model: 'GPT-5.5',
         inputPrice: 0.0025,
         outputPrice: 0.01,
+        inputCachedPrice: 0.00125,
+        inputCacheHitPrice: 0.000625,
         contextWindow: '128K',
         description: 'Latest flagship model',
         benchmarks: {
@@ -27,6 +32,8 @@ const pricingData = [
         model: 'GPT-4o',
         inputPrice: 0.0025,
         outputPrice: 0.01,
+        inputCachedPrice: 0.00125,
+        inputCacheHitPrice: 0.000625,
         contextWindow: '128K',
         description: 'Most capable GPT-4 model with vision',
         benchmarks: {
@@ -44,6 +51,8 @@ const pricingData = [
         model: 'GPT-4o Mini',
         inputPrice: 0.00015,
         outputPrice: 0.0006,
+        inputCachedPrice: 0.000075,
+        inputCacheHitPrice: 0.0000375,
         contextWindow: '128K',
         description: 'Affordable small model for simple tasks',
         benchmarks: {
@@ -61,6 +70,8 @@ const pricingData = [
         model: 'GPT-4 Turbo',
         inputPrice: 0.01,
         outputPrice: 0.03,
+        inputCachedPrice: 0.005,
+        inputCacheHitPrice: 0.0025,
         contextWindow: '128K',
         description: 'Previous generation high-performance model',
         benchmarks: {
@@ -78,6 +89,8 @@ const pricingData = [
         model: 'GPT-3.5 Turbo',
         inputPrice: 0.0005,
         outputPrice: 0.0015,
+        inputCachedPrice: 0.00025,
+        inputCacheHitPrice: 0.000125,
         contextWindow: '16K',
         description: 'Fast and cost-effective for simple tasks',
         benchmarks: {
@@ -95,6 +108,8 @@ const pricingData = [
         model: 'o1',
         inputPrice: 0.015,
         outputPrice: 0.06,
+        inputCachedPrice: 0.0075,
+        inputCacheHitPrice: 0.00375,
         contextWindow: '200K',
         description: 'Reasoning model for complex problems',
         benchmarks: {
@@ -112,6 +127,8 @@ const pricingData = [
         model: 'o1-mini',
         inputPrice: 0.003,
         outputPrice: 0.012,
+        inputCachedPrice: 0.0015,
+        inputCacheHitPrice: 0.00075,
         contextWindow: '200K',
         description: 'Faster, cheaper reasoning model',
         benchmarks: {
@@ -129,6 +146,8 @@ const pricingData = [
         model: 'o3-mini',
         inputPrice: 0.0011,
         outputPrice: 0.0044,
+        inputCachedPrice: 0.00055,
+        inputCacheHitPrice: 0.000275,
         contextWindow: '200K',
         description: 'Latest reasoning model, best value',
         benchmarks: {
@@ -142,12 +161,16 @@ const pricingData = [
     },
 
     // ===== Anthropic =====
+    // Cache pricing: https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+    // Cache write = 1.25x input, Cache hit = 0.1x input (5-min TTL)
     {
         provider: 'Anthropic',
         providerClass: 'anthropic',
         model: 'Claude Opus 4.8',
         inputPrice: 0.005,
         outputPrice: 0.025,
+        inputCachedPrice: 0.0005,
+        inputCacheHitPrice: 0.0005,
         contextWindow: '1M',
         description: 'Most capable Opus-tier model for complex reasoning',
         benchmarks: {
@@ -165,6 +188,8 @@ const pricingData = [
         model: 'Claude Sonnet 4.6',
         inputPrice: 0.003,
         outputPrice: 0.015,
+        inputCachedPrice: 0.0003,
+        inputCacheHitPrice: 0.0003,
         contextWindow: '1M',
         description: 'Best combination of speed and intelligence',
         benchmarks: {
@@ -182,6 +207,8 @@ const pricingData = [
         model: 'Claude Haiku 4.5',
         inputPrice: 0.001,
         outputPrice: 0.005,
+        inputCachedPrice: 0.0001,
+        inputCacheHitPrice: 0.0001,
         contextWindow: '200K',
         description: 'Fastest model with near-frontier intelligence',
         benchmarks: {
@@ -199,6 +226,8 @@ const pricingData = [
         model: 'Claude Opus 4.7',
         inputPrice: 0.005,
         outputPrice: 0.025,
+        inputCachedPrice: 0.0005,
+        inputCacheHitPrice: 0.0005,
         contextWindow: '1M',
         description: 'Previous Opus generation (legacy)',
         benchmarks: {
@@ -216,6 +245,8 @@ const pricingData = [
         model: 'Claude Opus 4.6',
         inputPrice: 0.005,
         outputPrice: 0.025,
+        inputCachedPrice: 0.0005,
+        inputCacheHitPrice: 0.0005,
         contextWindow: '1M',
         description: 'Previous Opus generation (legacy)',
         benchmarks: {
@@ -233,6 +264,8 @@ const pricingData = [
         model: 'Claude Sonnet 4.5',
         inputPrice: 0.003,
         outputPrice: 0.015,
+        inputCachedPrice: 0.0003,
+        inputCacheHitPrice: 0.0003,
         contextWindow: '200K',
         description: 'Previous Sonnet generation (legacy)',
         benchmarks: {
@@ -250,6 +283,8 @@ const pricingData = [
         model: 'Claude 3.5 Sonnet',
         inputPrice: 0.003,
         outputPrice: 0.015,
+        inputCachedPrice: 0.0003,
+        inputCacheHitPrice: 0.0003,
         contextWindow: '200K',
         description: 'Best balance of speed and capability',
         benchmarks: {
@@ -267,6 +302,8 @@ const pricingData = [
         model: 'Claude 3.5 Haiku',
         inputPrice: 0.0008,
         outputPrice: 0.004,
+        inputCachedPrice: 0.00008,
+        inputCacheHitPrice: 0.00008,
         contextWindow: '200K',
         description: 'Fast and affordable for everyday tasks',
         benchmarks: {
@@ -284,6 +321,8 @@ const pricingData = [
         model: 'Claude 3 Opus',
         inputPrice: 0.015,
         outputPrice: 0.075,
+        inputCachedPrice: 0.0015,
+        inputCacheHitPrice: 0.0015,
         contextWindow: '200K',
         description: 'Most powerful Claude 3 model',
         benchmarks: {
@@ -297,12 +336,16 @@ const pricingData = [
     },
 
     // ===== Google =====
+    // Cache pricing: https://ai.google.dev/gemini-api/docs/caching
+    // Cache hit = 25% of input price, Cache write = 100% of input price
     {
         provider: 'Google',
         providerClass: 'google',
         model: 'Gemini 2.0 Flash',
         inputPrice: 0.0001,
         outputPrice: 0.0004,
+        inputCachedPrice: 0.000025,
+        inputCacheHitPrice: 0.000025,
         contextWindow: '1M',
         description: 'Ultra-fast, ultra-cheap flash model',
         benchmarks: {
@@ -320,6 +363,8 @@ const pricingData = [
         model: 'Gemini 2.0 Pro',
         inputPrice: 0.002,
         outputPrice: 0.008,
+        inputCachedPrice: 0.0005,
+        inputCacheHitPrice: 0.0005,
         contextWindow: '2M',
         description: 'Most capable Gemini model',
         benchmarks: {
@@ -337,6 +382,8 @@ const pricingData = [
         model: 'Gemini 1.5 Pro',
         inputPrice: 0.00125,
         outputPrice: 0.005,
+        inputCachedPrice: 0.0003125,
+        inputCacheHitPrice: 0.0003125,
         contextWindow: '2M',
         description: 'Previous generation Pro model',
         benchmarks: {
@@ -354,6 +401,8 @@ const pricingData = [
         model: 'Gemini 1.5 Flash',
         inputPrice: 0.000075,
         outputPrice: 0.0003,
+        inputCachedPrice: 0.00001875,
+        inputCacheHitPrice: 0.00001875,
         contextWindow: '1M',
         description: 'Cost-effective flash model',
         benchmarks: {
@@ -371,6 +420,8 @@ const pricingData = [
         model: 'Gemini 3.1 Pro',
         inputPrice: 0.0015,
         outputPrice: 0.006,
+        inputCachedPrice: 0.000375,
+        inputCacheHitPrice: 0.000375,
         contextWindow: '2M',
         description: 'Latest flagship Pro model with enhanced reasoning',
         benchmarks: {
@@ -384,12 +435,15 @@ const pricingData = [
     },
 
     // ===== Meta =====
+    // Meta does not offer official API caching - prices are standard
     {
         provider: 'Meta',
         providerClass: 'meta',
         model: 'Llama 3.1 405B',
         inputPrice: 0.002,
         outputPrice: 0.002,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
         contextWindow: '128K',
         description: 'Largest open-source Llama model',
         benchmarks: {
@@ -407,6 +461,8 @@ const pricingData = [
         model: 'Llama 3.1 70B',
         inputPrice: 0.00059,
         outputPrice: 0.00079,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
         contextWindow: '128K',
         description: 'Mid-size open-source model',
         benchmarks: {
@@ -424,6 +480,8 @@ const pricingData = [
         model: 'Llama 3.1 8B',
         inputPrice: 0.00006,
         outputPrice: 0.00006,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
         contextWindow: '128K',
         description: 'Small, fast open-source model',
         benchmarks: {
@@ -441,6 +499,8 @@ const pricingData = [
         model: 'Llama 4 17B',
         inputPrice: 0.0001,
         outputPrice: 0.0001,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
         contextWindow: '256K',
         description: 'Latest generation small model',
         benchmarks: {
@@ -454,12 +514,16 @@ const pricingData = [
     },
 
     // ===== Mistral =====
+    // Cache pricing: https://docs.mistral.ai/capabilities/prompt-caching/
+    // Cache hit = 50% of input price, Cache write = 100% of input price
     {
         provider: 'Mistral',
         providerClass: 'mistral',
         model: 'Mistral Large 2',
         inputPrice: 0.002,
         outputPrice: 0.006,
+        inputCachedPrice: 0.001,
+        inputCacheHitPrice: 0.001,
         contextWindow: '128K',
         description: 'Most capable Mistral model',
         benchmarks: {
@@ -477,6 +541,8 @@ const pricingData = [
         model: 'Mistral Small 3.1',
         inputPrice: 0.0002,
         outputPrice: 0.0006,
+        inputCachedPrice: 0.0001,
+        inputCacheHitPrice: 0.0001,
         contextWindow: '128K',
         description: 'Efficient small model',
         benchmarks: {
@@ -494,6 +560,8 @@ const pricingData = [
         model: 'Codestral',
         inputPrice: 0.001,
         outputPrice: 0.003,
+        inputCachedPrice: 0.0005,
+        inputCacheHitPrice: 0.0005,
         contextWindow: '256K',
         description: 'Specialized for code generation',
         benchmarks: {
@@ -507,12 +575,16 @@ const pricingData = [
     },
 
     // ===== DeepSeek =====
+    // Cache pricing: https://api-docs.deepseek.com/quick_start/pricing
+    // Cache hit = 10% of input price for V3/R1/Coder-V2, 40% for V4 Flash/Pro
     {
         provider: 'DeepSeek',
         providerClass: 'deepseek',
         model: 'DeepSeek-V3',
         inputPrice: 0.00027,
         outputPrice: 0.0011,
+        inputCachedPrice: 0.000027,
+        inputCacheHitPrice: 0.000027,
         contextWindow: '128K',
         description: 'Latest flagship model, strong general performance',
         benchmarks: {
@@ -530,6 +602,8 @@ const pricingData = [
         model: 'DeepSeek-R1',
         inputPrice: 0.00055,
         outputPrice: 0.00219,
+        inputCachedPrice: 0.000055,
+        inputCacheHitPrice: 0.000055,
         contextWindow: '128K',
         description: 'Reasoning model with chain-of-thought',
         benchmarks: {
@@ -547,6 +621,8 @@ const pricingData = [
         model: 'DeepSeek-Coder-V2',
         inputPrice: 0.00014,
         outputPrice: 0.00028,
+        inputCachedPrice: 0.000014,
+        inputCacheHitPrice: 0.000014,
         contextWindow: '128K',
         description: 'Specialized code generation model',
         benchmarks: {
@@ -564,6 +640,8 @@ const pricingData = [
         model: 'DeepSeek-V4 Flash',
         inputPrice: 0.00007,
         outputPrice: 0.00028,
+        inputCachedPrice: 0.000028,
+        inputCacheHitPrice: 0.000028,
         contextWindow: '1M',
         description: 'Fast, cost-efficient V4 model',
         benchmarks: {
@@ -580,26 +658,31 @@ const pricingData = [
         providerClass: 'deepseek',
         model: 'DeepSeek-V4 Pro',
         inputPrice: 0.0005,
-        outputPrice: 0.002,
+        outputPrice: 0.0015,
+        inputCachedPrice: 0.0002,
+        inputCacheHitPrice: 0.0002,
         contextWindow: '1M',
-        description: 'High-performance V4 flagship model',
+        description: 'Premium V4 model with enhanced capabilities',
         benchmarks: {
-            mmlu: 91.2,
-            humaneval: 93.5,
-            math: 90.8,
-            gpqa: 87.3,
-            ifeval: 90.1
+            mmlu: 89.8,
+            humaneval: 91.5,
+            math: 86.7,
+            gpqa: 83.2,
+            ifeval: 87.9
         },
         docsUrl: 'https://api-docs.deepseek.com/'
     },
 
     // ===== Cohere =====
+    // Cohere does not offer official API caching
     {
         provider: 'Cohere',
         providerClass: 'cohere',
         model: 'Command R+',
         inputPrice: 0.003,
         outputPrice: 0.015,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
         contextWindow: '128K',
         description: 'Enterprise RAG-optimized model',
         benchmarks: {
@@ -617,6 +700,8 @@ const pricingData = [
         model: 'Command R',
         inputPrice: 0.0005,
         outputPrice: 0.0015,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
         contextWindow: '128K',
         description: 'Cost-effective RAG model',
         benchmarks: {
@@ -634,6 +719,8 @@ const pricingData = [
         model: 'Command A',
         inputPrice: 0.0025,
         outputPrice: 0.01,
+        inputCachedPrice: null,
+        inputCacheHitPrice: null,
         contextWindow: '256K',
         description: 'Latest generation command model',
         benchmarks: {

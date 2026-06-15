@@ -172,19 +172,24 @@ section {
 
 /* ===== Table Styles ===== */
 .table-container {
-    overflow-x: auto;
+    overflow: auto;
     border-radius: var(--radius);
     border: 1px solid var(--border);
     background: var(--bg-card);
+    max-height: 600px;
 }
 
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.95rem;
 }
 
 thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
     background: var(--bg-hover);
     padding: 16px 20px;
     text-align: left;
@@ -195,6 +200,57 @@ thead th {
     letter-spacing: 0.5px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+}
+
+/* Sticky checkbox column (first column) */
+#pricing-table thead th:first-child,
+#pricing-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg-card);
+}
+
+#pricing-table thead th:first-child {
+    z-index: 4;
+    background: var(--bg-hover);
+}
+
+/* Sticky model column - uses .sticky-col class added by JS */
+#pricing-table thead th.sticky-col,
+#pricing-table tbody td.sticky-col {
+    position: sticky;
+    left: 40px;
+    z-index: 2;
+    background: var(--bg-card);
+}
+
+#pricing-table thead th.sticky-col {
+    z-index: 4;
+    background: var(--bg-hover);
+}
+
+/* Add a shadow effect on the right edge of sticky model column */
+#pricing-table tbody td.sticky-col::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -8px;
+    bottom: 0;
+    width: 8px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.3), transparent);
+    pointer-events: none;
+}
+
+#pricing-table thead th.sticky-col::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -8px;
+    bottom: 0;
+    width: 8px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.3), transparent);
+    pointer-events: none;
 }
 
 .sortable {
@@ -247,6 +303,12 @@ tbody tr:last-child td {
 }
 
 tbody tr:hover td {
+    background: var(--bg-hover);
+}
+
+/* Ensure sticky columns update background on row hover */
+tbody tr:hover td:first-child,
+tbody tr:hover td.sticky-col {
     background: var(--bg-hover);
 }
 
@@ -679,6 +741,51 @@ tbody tr {
     margin-top: 6px;
 }
 
+/* Checkbox group for calculator */
+.checkbox-group {
+    margin-bottom: 20px;
+}
+
+.checkbox-group .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.checkbox-group .checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.checkbox-group .hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    margin-left: 28px;
+}
+
+/* Cached input price styling */
+.price-cached {
+    color: var(--green) !important;
+}
+
+.price-cached::before {
+    content: "⚡ ";
+    font-size: 0.8rem;
+}
+
+/* Muted text for empty/placeholder values */
+.text-muted {
+    color: var(--text-muted);
+}
+
 .btn-primary {
     width: 100%;
     padding: 14px 28px;
@@ -780,79 +887,334 @@ tbody tr {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 32px;
-    margin-bottom: 32px;
+    padding: 24px;
+    margin-bottom: 24px;
 }
 
-.checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-}
-
-.checkbox-label {
+.comparison-controls-row {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.comparison-controls-row + .comparison-controls-row {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.comparison-model-select {
+    flex: 0 0 380px;
+    min-width: 0;
+}
+
+.comparison-search-box {
+    margin-bottom: 8px;
+}
+
+.comparison-search-box .search-input {
+    width: 100%;
+    padding: 8px 12px;
     background: var(--bg-primary);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-family: inherit;
     transition: var(--transition);
-    font-size: 0.9rem;
 }
 
-.checkbox-label:hover {
+.comparison-search-box .search-input:focus {
+    outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.comparison-search-box .search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.comparison-checkbox-list {
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+}
+
+.comparison-checkbox-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.comparison-checkbox-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.comparison-checkbox-list::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
+.comparison-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.85rem;
+}
+
+.comparison-checkbox-item:hover {
     background: var(--bg-hover);
 }
 
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+.comparison-checkbox-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
     accent-color: var(--accent);
     cursor: pointer;
+    flex-shrink: 0;
+}
+
+.comparison-checkbox-item .provider-badge {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    flex-shrink: 0;
+}
+
+.comparison-checkbox-item .model-name {
+    font-size: 0.85rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.comparison-checkbox-item .model-context {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.comparison-checkbox-item.checked {
+    background: rgba(108, 92, 231, 0.1);
+    border-left: 3px solid var(--accent);
+}
+
+.comparison-checkbox-item.hidden {
+    display: none;
+}
+
+.comparison-presets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.comparison-presets label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.preset-buttons {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-primary);
+    padding: 3px;
+    border-radius: 6px;
+}
+
+.preset-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.preset-btn:hover {
+    color: var(--text-secondary);
+}
+
+.preset-btn.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.comparison-inputs-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.comparison-input-group {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.comparison-input-group label {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+}
+
+.comparison-input-group input {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+}
+
+.comparison-btn {
+    width: auto;
+    padding: 10px 28px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .comparison-results {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 32px;
-    min-height: 200px;
+    padding: 24px;
+    min-height: 120px;
+}
+
+.comparison-cards-wrapper {
     display: flex;
     flex-direction: column;
+    gap: 8px;
+}
+
+.comparison-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.comparison-card:hover {
+    border-color: var(--border-light);
+}
+
+.comparison-card-rank {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
-.comparison-table-wrapper {
-    overflow-x: auto;
+.comparison-card-rank.rank-1 {
+    background: linear-gradient(135deg, #ffd700, #ffb300);
+    color: #1a1a3e;
 }
 
-#comparison-table th,
-#comparison-table td {
-    text-align: center;
+.comparison-card-rank.rank-2 {
+    background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
+    color: #1a1a3e;
 }
 
-#comparison-table th:first-child,
-#comparison-table td:first-child {
-    text-align: left;
+.comparison-card-rank.rank-3 {
+    background: linear-gradient(135deg, #cd7f32, #b8860b);
+    color: white;
 }
 
-.cheapest-badge {
-    display: inline-block;
-    padding: 2px 10px;
+.comparison-card-rank.rank-other {
+    background: var(--bg-hover);
+    color: var(--text-muted);
+}
+
+.comparison-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.comparison-card-model {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.comparison-card-provider {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.comparison-card-costs {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.comparison-card-cost-item {
+    text-align: right;
+}
+
+.comparison-card-cost-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.comparison-card-cost-value {
+    font-weight: 700;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+}
+
+.comparison-card-cost-value.cheapest {
+    color: var(--green);
+}
+
+.comparison-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
     border-radius: 50px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.comparison-card-badge.cheapest-badge {
     background: var(--green-bg);
     color: var(--green);
-    font-size: 0.8rem;
-    font-weight: 600;
 }
 
-.more-expensive {
+.comparison-card-badge.more-expensive {
+    background: rgba(255, 107, 107, 0.1);
     color: var(--red);
-    font-size: 0.85rem;
+}
+
+.comparison-card-savings {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
 }
 
 /* ===== Checkbox Column in Pricing Table ===== */
@@ -1408,6 +1770,57 @@ footer {
     .modal-header {
         padding: 24px 20px 16px;
     }
+
+    /* Comparison responsive */
+    .comparison-controls-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .comparison-model-select {
+        width: 100%;
+    }
+
+    .comparison-presets {
+        width: 100%;
+    }
+
+    .preset-buttons {
+        width: 100%;
+    }
+
+    .preset-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .comparison-inputs-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .comparison-input-group {
+        width: 100%;
+    }
+
+    .comparison-btn {
+        width: 100%;
+    }
+
+    .comparison-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .comparison-card-costs {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .comparison-card-badge {
+        align-self: flex-start;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1425,5 +1838,297 @@ footer {
 
     .checkbox-grid {
         grid-template-columns: 1fr;
+    }
+
+    .comparison-card-costs {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+
+/* ===== Search Input ===== */
+.search-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+    max-width: 300px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ===== Token Estimator ===== */
+.token-estimator-group {
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.token-estimator-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-family: 'Inter', monospace;
+    resize: vertical;
+    min-height: 80px;
+    transition: var(--transition);
+}
+
+.token-estimator-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.token-estimator-input::placeholder {
+    color: var(--text-muted);
+}
+
+.token-estimator-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--green-bg);
+    border: 1px solid rgba(0, 206, 201, 0.2);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--green);
+}
+
+.token-estimator-result strong {
+    font-size: 1rem;
+}
+
+.btn-ghost.btn-sm {
+    padding: 4px 10px;
+    font-size: 0.78rem;
+}
+
+/* ===== Chart Section ===== */
+.chart-section {
+    padding: 80px 0;
+    background: var(--bg-secondary);
+}
+
+.chart-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.chart-controls-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.chart-model-select {
+    flex: 0 0 380px;
+    min-width: 0;
+}
+
+.chart-search-box {
+    margin-bottom: 8px;
+}
+
+.chart-search-box .search-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.chart-search-box .search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.chart-search-box .search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.chart-checkbox-list {
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+}
+
+.chart-checkbox-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chart-checkbox-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chart-checkbox-list::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
+.chart-type-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.chart-type-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.chart-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+}
+
+.chart-container canvas {
+    max-width: 100%;
+    max-height: 500px;
+}
+
+.chart-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.chart-placeholder .placeholder-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+}
+
+.chart-placeholder p {
+    max-width: 400px;
+    font-size: 0.9rem;
+}
+
+/* ===== Chart Legend ===== */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.chart-legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* ===== Responsive for chart ===== */
+@media (max-width: 768px) {
+    .chart-controls {
+        padding: 16px;
+    }
+
+    .chart-controls-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .chart-model-select {
+        width: 100%;
+    }
+
+    .chart-type-group {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .chart-container {
+        min-height: 300px;
+        padding: 12px;
+    }
+
+    .chart-container canvas {
+        max-height: 350px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-container {
+        min-height: 250px;
+    }
+
+    .chart-container canvas {
+        max-height: 280px;
     }
 }
