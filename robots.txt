@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://reddyrc.github.io/ai-cost-comparator/sitemap.xml

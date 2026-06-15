@@ -26,6 +26,7 @@ Compare costs across 30+ AI models from 7 providers. View token pricing, calcula
 | Meta | Llama 3.1 405B, 3.1 70B, 3.1 8B, Llama 4 17B | ❌ No caching |
 | Mistral | Mistral Large 2, Small 3.1, Codestral | ✅ 50% cache hit |
 | DeepSeek | DeepSeek-V3, R1, Coder-V2, V4 Flash, V4 Pro | ✅ 10-40% cache hit |
+| Kimi | K2.7 Code, K2.6, K2.5, Moonshot V1 (8K/32K/128K text + vision) | ✅ 20% auto cache |
 | Cohere | Command R+, Command R, Command A | ❌ No caching |
 
 ## Usage
