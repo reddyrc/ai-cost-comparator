@@ -783,6 +783,11 @@ function initChart() {
         });
     });
     
+    // Scatter chart controls
+    const scatterControls = document.getElementById('chart-scatter-controls');
+    const scatterXAxis = document.getElementById('scatter-x-axis');
+    const scatterYAxis = document.getElementById('scatter-y-axis');
+    
     // Chart type toggle
     chartTypeGroup.addEventListener('click', (e) => {
         const btn = e.target.closest('.toggle-btn');
@@ -792,10 +797,31 @@ function initChart() {
         btn.classList.add('active');
         chartType = btn.dataset.chart;
         
+        // Show/hide scatter controls
+        if (scatterControls) {
+            scatterControls.classList.toggle('hidden', chartType !== 'scatter');
+        }
+        
         if (selectedModels.length >= 2) {
             drawChart(selectedModels, chartType);
         }
     });
+    
+    // Scatter axis change → redraw
+    if (scatterXAxis) {
+        scatterXAxis.addEventListener('change', () => {
+            if (selectedModels.length >= 2 && chartType === 'scatter') {
+                drawChart(selectedModels, chartType);
+            }
+        });
+    }
+    if (scatterYAxis) {
+        scatterYAxis.addEventListener('change', () => {
+            if (selectedModels.length >= 2 && chartType === 'scatter') {
+                drawChart(selectedModels, chartType);
+            }
+        });
+    }
     
     // Update count and checked styling
     function updateChart() {
@@ -855,6 +881,8 @@ function drawChart(models, type) {
     
     if (type === 'radar') {
         drawRadarChart(ctx, models, width, height);
+    } else if (type === 'scatter') {
+        drawScatterChart(ctx, models, width, height);
     } else {
         drawBarChart(ctx, models, width, height);
     }
@@ -1052,15 +1080,21 @@ function drawBarChart(ctx, models, width, height) {
 }
 
 function drawLegend(ctx, models, width, height) {
-    const legendY = height - 8;
-    let xOffset = width / 2 - (models.length * 100) / 2;
+    const itemHeight = 18;
+    const itemWidth = 140;
+    const padding = 12;
+    const maxWidth = width - padding * 2;
+    const colsPerRow = Math.max(1, Math.floor(maxWidth / itemWidth));
+    
+    let xOffset = padding;
+    let yOffset = height - 8 - (Math.ceil(models.length / colsPerRow) - 1) * itemHeight;
     
     models.forEach((model, idx) => {
         const color = CHART_COLORS[idx % CHART_COLORS.length];
         
         // Color box
         ctx.fillStyle = color;
-        ctx.fillRect(xOffset, legendY - 6, 10, 10);
+        ctx.fillRect(xOffset, yOffset - 6, 10, 10);
         
         // Label
         ctx.fillStyle = '#9898b8';
@@ -1070,11 +1104,272 @@ function drawLegend(ctx, models, width, height) {
         
         // Truncate long names
         let name = model.model;
-        if (name.length > 20) name = name.substring(0, 18) + '…';
+        if (name.length > 18) name = name.substring(0, 16) + '…';
         
-        ctx.fillText(name, xOffset + 16, legendY);
-        xOffset += Math.min(name.length * 7 + 30, 160);
+        ctx.fillText(name, xOffset + 16, yOffset);
+        
+        // Move to next position
+        xOffset += itemWidth;
+        if ((idx + 1) % colsPerRow === 0) {
+            xOffset = padding;
+            yOffset += itemHeight;
+        }
     });
+}
+
+// ===== Scatter Chart (Benchmark vs Cost) =====
+
+function drawScatterChart(ctx, models, width, height) {
+    const xAxisKey = document.getElementById('scatter-x-axis')?.value || 'inputPrice';
+    const yAxisKey = document.getElementById('scatter-y-axis')?.value || 'average';
+    
+    const padding = { top: 40, bottom: 60, left: 70, right: 40 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+    
+    // Collect data points
+    const points = models.map(model => {
+        let xVal = model[xAxisKey];
+        if (xVal === undefined || xVal === null) xVal = 0;
+        
+        let yVal;
+        if (yAxisKey === 'average') {
+            // Calculate average benchmark score
+            const benchmarkKeys = ['mmlu', 'humaneval', 'math', 'gpqa', 'ifeval'];
+            const scores = benchmarkKeys.filter(k => model.benchmarks?.[k] != null).map(k => model.benchmarks[k]);
+            yVal = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+        } else {
+            yVal = model.benchmarks?.[yAxisKey];
+            if (yVal === undefined || yVal === null) yVal = 0;
+        }
+        
+        return { model, x: xVal, y: yVal };
+    });
+    
+    // Filter out points with no data
+    const validPoints = points.filter(p => p.y > 0);
+    if (validPoints.length === 0) {
+        ctx.fillStyle = '#6868a0';
+        ctx.font = '14px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('No benchmark data available for selected models', width / 2, height / 2);
+        return;
+    }
+    
+    // Find axis ranges with padding
+    const xValues = validPoints.map(p => p.x);
+    const yValues = validPoints.map(p => p.y);
+    const xMin = Math.min(...xValues);
+    const xMax = Math.max(...xValues);
+    const yMin = 0; // Benchmarks start at 0%
+    const yMax = 100; // Benchmarks go to 100%
+    
+    const xRange = xMax - xMin || 1;
+    const yRange = yMax - yMin || 1;
+    
+    // Add 10% padding to x-axis
+    const xPad = xRange * 0.1;
+    const xAxisMin = Math.max(0, xMin - xPad);
+    const xAxisMax = xMax + xPad;
+    const xAxisRange = xAxisMax - xAxisMin || 1;
+    
+    // Draw axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    
+    // Y axis
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, padding.top + chartHeight);
+    ctx.stroke();
+    
+    // X axis
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top + chartHeight);
+    ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+    ctx.stroke();
+    
+    // Y axis labels and grid lines
+    const ySteps = 5;
+    for (let i = 0; i <= ySteps; i++) {
+        const y = padding.top + chartHeight - (chartHeight / ySteps) * i;
+        const value = (yMax / ySteps) * i;
+        
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(padding.left + chartWidth, y);
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.stroke();
+        
+        ctx.fillStyle = '#6868a0';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(value.toFixed(0) + '%', padding.left - 8, y);
+    }
+    
+    // X axis labels — use fewer steps to avoid overlap
+    const xSteps = Math.min(5, Math.floor(chartWidth / 100));
+    for (let i = 0; i <= xSteps; i++) {
+        const x = padding.left + (chartWidth / xSteps) * i;
+        const value = xAxisMin + (xAxisRange / xSteps) * i;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, padding.top + chartHeight);
+        ctx.lineTo(x, padding.top + chartHeight + 5);
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.stroke();
+        
+        ctx.fillStyle = '#6868a0';
+        ctx.font = '9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        
+        // Format price label — use shorter format to avoid overlap
+        let label;
+        if (value < 0.0001) label = '<$0.0001';
+        else if (value < 0.01) label = '$' + value.toFixed(5);
+        else if (value < 1) label = '$' + value.toFixed(3);
+        else label = '$' + value.toFixed(2);
+        ctx.fillText(label, x, padding.top + chartHeight + 8);
+    }
+    
+    // Axis titles
+    ctx.fillStyle = '#9898b8';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    
+    const xLabelMap = {
+        inputPrice: 'Input Price (per 1K tokens)',
+        outputPrice: 'Output Price (per 1K tokens)',
+        inputCachedPrice: 'Cached Input Price (per 1K tokens)'
+    };
+    ctx.fillText(xLabelMap[xAxisKey] || 'Cost', width / 2, height - 12);
+    
+    // Y axis title (rotated)
+    ctx.save();
+    ctx.translate(14, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const yLabelMap = {
+        mmlu: 'MMLU Score',
+        humaneval: 'HumanEval Score',
+        math: 'MATH Score',
+        gpqa: 'GPQA Score',
+        ifeval: 'IFEval Score',
+        average: 'Average Benchmark Score'
+    };
+    ctx.fillText(yLabelMap[yAxisKey] || 'Benchmark Score', 0, 0);
+    ctx.restore();
+    
+    // Draw scatter points with smart label positioning
+    const pointRadius = 8;
+    
+    // Pre-calculate all positions for overlap detection
+    const positionedPoints = validPoints.map((point) => {
+        const modelIdx = models.indexOf(point.model);
+        const color = CHART_COLORS[modelIdx % CHART_COLORS.length];
+        
+        const px = padding.left + ((point.x - xAxisMin) / xAxisRange) * chartWidth;
+        const py = padding.top + chartHeight - ((point.y - yMin) / yRange) * chartHeight;
+        
+        let label = point.model.model;
+        if (label.length > 14) label = label.substring(0, 12) + '…';
+        
+        return { point, px, py, color, label, modelIdx };
+    });
+    
+    // Detect overlapping labels and alternate label positions
+    const labelOffset = 14; // distance from point center to label
+    const usedPositions = []; // track { y, label }
+    
+    positionedPoints.forEach((p, idx) => {
+        // Check if this label would overlap with any already-placed label
+        let labelY = p.py - pointRadius - labelOffset;
+        let labelX = p.px;
+        let textAlign = 'center';
+        let overlap = true;
+        let attempts = 0;
+        
+        while (overlap && attempts < 5) {
+            overlap = false;
+            for (const used of usedPositions) {
+                // Check vertical overlap (within 16px) and horizontal proximity
+                const hDist = Math.abs(labelX - used.x);
+                const vDist = Math.abs(labelY - used.y);
+                if (vDist < 16 && hDist < 80) {
+                    overlap = true;
+                    break;
+                }
+            }
+            if (overlap) {
+                // Try shifting label to the right or left
+                if (attempts % 2 === 0) {
+                    labelX = p.px + 50 + attempts * 10;
+                    textAlign = 'left';
+                } else {
+                    labelX = p.px - 50 - attempts * 10;
+                    textAlign = 'right';
+                }
+                attempts++;
+            }
+        }
+        
+        usedPositions.push({ y: labelY, x: labelX });
+        
+        // Glow effect
+        const gradient = ctx.createRadialGradient(p.px, p.py, 0, p.px, p.py, pointRadius * 2);
+        gradient.addColorStop(0, p.color + '40');
+        gradient.addColorStop(1, p.color + '00');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(p.px, p.py, pointRadius * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Point circle
+        ctx.beginPath();
+        ctx.arc(p.px, p.py, pointRadius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Label
+        ctx.fillStyle = p.color;
+        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.textAlign = textAlign;
+        ctx.textBaseline = 'bottom';
+        
+        // Draw a subtle background behind the label for readability
+        const metrics = ctx.measureText(p.label);
+        const labelW = metrics.width + 6;
+        const labelH = 14;
+        let bgX, bgY;
+        if (textAlign === 'center') {
+            bgX = labelX - labelW / 2;
+            bgY = labelY - labelH + 2;
+        } else if (textAlign === 'left') {
+            bgX = labelX - 2;
+            bgY = labelY - labelH + 2;
+        } else {
+            bgX = labelX - labelW + 2;
+            bgY = labelY - labelH + 2;
+        }
+        ctx.fillStyle = 'rgba(10,10,26,0.75)';
+        ctx.beginPath();
+        ctx.roundRect(bgX, bgY, labelW, labelH, 3);
+        ctx.fill();
+        
+        ctx.fillText(p.label, labelX, labelY);
+    });
+    
+    // Draw legend
+    drawLegend(ctx, models, width, height);
 }
 
 // ===== Column Configuration =====

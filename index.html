@@ -212,6 +212,28 @@
                             <div class="toggle-group" id="chart-type-group">
                                 <button class="toggle-btn active" data-chart="radar">Radar</button>
                                 <button class="toggle-btn" data-chart="bar">Bar</button>
+                                <button class="toggle-btn" data-chart="scatter">Scatter</button>
+                            </div>
+                        </div>
+                        <div class="chart-scatter-controls hidden" id="chart-scatter-controls">
+                            <div class="form-group">
+                                <label for="scatter-x-axis">X-Axis (Cost)</label>
+                                <select id="scatter-x-axis" class="chart-select">
+                                    <option value="inputPrice">Input Price (per 1K)</option>
+                                    <option value="outputPrice">Output Price (per 1K)</option>
+                                    <option value="inputCachedPrice">Cached Input Price</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="scatter-y-axis">Y-Axis (Benchmark)</label>
+                                <select id="scatter-y-axis" class="chart-select">
+                                    <option value="mmlu">MMLU</option>
+                                    <option value="humaneval">HumanEval</option>
+                                    <option value="math">MATH</option>
+                                    <option value="gpqa">GPQA</option>
+                                    <option value="ifeval">IFEval</option>
+                                    <option value="average" selected>Average Score</option>
+                                </select>
                             </div>
                         </div>
                     </div>
