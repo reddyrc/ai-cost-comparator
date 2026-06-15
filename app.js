@@ -203,16 +203,16 @@ function sortTable(column, direction) {
                     valB = b.cells[colIndex]?.textContent?.trim().toLowerCase() || '';
                     break;
                 case 'input':
-                    valA = parsePrice(a.cells[colIndex]?.textContent || '');
-                    valB = parsePrice(b.cells[colIndex]?.textContent || '');
+                    valA = parseFloat(a.cells[colIndex]?.dataset?.sortValue) || parsePrice(a.cells[colIndex]?.textContent || '');
+                    valB = parseFloat(b.cells[colIndex]?.dataset?.sortValue) || parsePrice(b.cells[colIndex]?.textContent || '');
                     break;
                 case 'output':
-                    valA = parsePrice(a.cells[colIndex]?.textContent || '');
-                    valB = parsePrice(b.cells[colIndex]?.textContent || '');
+                    valA = parseFloat(a.cells[colIndex]?.dataset?.sortValue) || parsePrice(a.cells[colIndex]?.textContent || '');
+                    valB = parseFloat(b.cells[colIndex]?.dataset?.sortValue) || parsePrice(b.cells[colIndex]?.textContent || '');
                     break;
                 case 'input-cached':
-                    valA = parsePrice(a.cells[colIndex]?.textContent || '');
-                    valB = parsePrice(b.cells[colIndex]?.textContent || '');
+                    valA = parseFloat(a.cells[colIndex]?.dataset?.sortValue) || parsePrice(a.cells[colIndex]?.textContent || '');
+                    valB = parseFloat(b.cells[colIndex]?.dataset?.sortValue) || parsePrice(b.cells[colIndex]?.textContent || '');
                     break;
                 case 'context':
                     valA = parseContext(a.cells[colIndex]?.textContent || '');
@@ -1240,7 +1240,7 @@ function applyColumnConfig(config) {
                     break;
                 case 'input':
                     cellsHTML += `
-                        <td>
+                        <td data-sort-value="${scaledInput}">
                             <span class="price-cell ${isCheapestInput ? 'price-cheapest' : ''}">
                                 ${formatCurrencyShort(scaledInput)}
                                 ${isCheapestInput ? ' 🏆' : ''}
@@ -1250,7 +1250,7 @@ function applyColumnConfig(config) {
                     break;
                 case 'output':
                     cellsHTML += `
-                        <td>
+                        <td data-sort-value="${scaledOutput}">
                             <span class="price-cell ${isCheapestOutput ? 'price-cheapest' : ''}">
                                 ${formatCurrencyShort(scaledOutput)}
                                 ${isCheapestOutput ? ' 🏆' : ''}
@@ -1262,7 +1262,7 @@ function applyColumnConfig(config) {
                     if (model.inputCachedPrice !== undefined) {
                         const scaledCached = model.inputCachedPrice * multiplier;
                         cellsHTML += `
-                            <td>
+                            <td data-sort-value="${scaledCached}">
                                 <span class="price-cell price-cached">
                                     ${formatCurrencyShort(scaledCached)}
                                 </span>
@@ -1270,7 +1270,7 @@ function applyColumnConfig(config) {
                             </td>
                         `;
                     } else {
-                        cellsHTML += `<td><span class="text-muted">—</span></td>`;
+                        cellsHTML += `<td data-sort-value="0"><span class="text-muted">—</span></td>`;
                     }
                     break;
                 case 'context':
