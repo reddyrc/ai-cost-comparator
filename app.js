@@ -845,16 +845,24 @@ function initModelCheckboxes() {
     function addCheckboxes() {
         const rows = tbody.querySelectorAll('tr');
         rows.forEach(row => {
-            // Check if checkbox already exists
+            // Check if checkbox already exists in this row
             if (row.querySelector('.model-checkbox')) return;
             
-            // Check if the header has a checkbox column (meaning applyColumnConfig already added it)
+            // Check if the header has a checkbox column
             const headerCheckbox = document.querySelector('#pricing-table thead .th-checkbox');
-            if (headerCheckbox) {
-                // The checkbox column is already in the header, so we need to add it to the row
-                const checkboxCell = document.createElement('td');
+            if (!headerCheckbox) return;
+            
+            // Look for existing td-checkbox cell (placed by applyColumnConfig)
+            let checkboxCell = row.querySelector('.td-checkbox');
+            const modelName = row.querySelector('.model-link')?.dataset?.model || '';
+            
+            if (checkboxCell) {
+                // Populate the existing cell with the checkbox input
+                checkboxCell.innerHTML = `<input type="checkbox" class="model-checkbox" value="${modelName}">`;
+            } else {
+                // No existing cell - create one and prepend it
+                checkboxCell = document.createElement('td');
                 checkboxCell.className = 'td-checkbox';
-                const modelName = row.querySelector('.model-link')?.dataset?.model || '';
                 checkboxCell.innerHTML = `<input type="checkbox" class="model-checkbox" value="${modelName}">`;
                 row.insertBefore(checkboxCell, row.firstChild);
             }
